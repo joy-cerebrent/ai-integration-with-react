@@ -1,8 +1,6 @@
 import React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
 import { Link } from "react-router-dom";
 
 import {
@@ -17,33 +15,17 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { LoginSchema, type LoginSchemaType } from "@/validators/AuthSchema";
-
-// Replace with your actual sign-in function
-const signInUser = async (values: LoginSchemaType) => {
-  await new Promise((res) => {
-    setTimeout(() => {
-      res(1)
-    }, 2000)
-  });
-  return { success: true }
-}
+import { useAuth } from "@/context/AuthContext";
 
 const Login: React.FC = () => {
-  const navigate = useNavigate();
+  const { login } = useAuth();
 
   const form = useForm<LoginSchemaType>({
     resolver: zodResolver(LoginSchema),
   });
 
-  const onSubmit = async (data: LoginSchemaType) => {
-    const res = await signInUser(data); // replace with real logic (e.g., fetch/axios)
-
-    if (res?.error) {
-      toast.error(res.error);
-    } else {
-      toast.success("Logged in successfully");
-      navigate("/");
-    }
+  const onSubmit = async (values: LoginSchemaType) => {
+    login(values);
   };
 
   return (

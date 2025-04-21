@@ -1,8 +1,6 @@
 import React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
 import { Link } from "react-router-dom";
 
 import {
@@ -20,33 +18,17 @@ import {
   RegisterSchema,
   type RegisterSchemaType,
 } from "@/validators/AuthSchema";
-
-// Replace with your actual register API function
-const registerUser = async (values: RegisterSchemaType) => {
-  await new Promise((res) => {
-    setTimeout(() => {
-      res(1)
-    }, 2000)
-  });
-  return { success: true }
-}
+import { useAuth } from "@/context/AuthContext";
 
 const Register: React.FC = () => {
-  const navigate = useNavigate();
+  const { register } = useAuth();
 
   const form = useForm<RegisterSchemaType>({
     resolver: zodResolver(RegisterSchema),
   });
 
   const onSubmit = async (values: RegisterSchemaType) => {
-    const result = await registerUser(values);
-
-    if (result?.error) {
-      toast.error(result.error);
-    } else {
-      toast.success("Registration successful");
-      navigate("/login");
-    }
+    await register(values);
   };
 
   return (

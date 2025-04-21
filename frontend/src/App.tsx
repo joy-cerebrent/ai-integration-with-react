@@ -1,4 +1,5 @@
 import { Route, Routes } from 'react-router-dom'
+import { AuthProvider } from '@/context/AuthContext'
 import Home from '@/pages/(root)/Home'
 import Chat from '@/pages/(root)/Chat'
 import Login from '@/pages/(auth)/Login'
@@ -7,15 +8,17 @@ import AuthLayout from '@/layouts/AuthLayout'
 
 const App = () => {
   return (
-    <Routes>
-      <Route path="/" element={<Home />} />
-      <Route path="/chat/:id" element={<Chat />} />
+    <AuthProvider>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/chat/:id" element={<Chat />} />
 
-      <Route element={<AuthLayout />}>
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-      </Route>
-    </Routes>
+        <Route element={<AuthLayout />}>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+        </Route>
+      </Routes>
+    </AuthProvider>
   )
 }
 
