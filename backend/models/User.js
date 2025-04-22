@@ -28,6 +28,12 @@ const UserSchema = new Schema({
     type: Schema.Types.ObjectId,
     ref: "Conversation",
   }],
+  notifications: [
+    {
+      type: Schema.Types.ObjectId,
+      ref: "Notification",
+    },
+  ],
 }, {
   timestamps: true,
 });

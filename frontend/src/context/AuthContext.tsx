@@ -115,7 +115,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (!res.ok) throw new Error(data.message);
 
       setUser(data.user);
-      if (['/login', '/signup'].includes(location.pathname)) {
+      if (['/login', '/register'].includes(location.pathname)) {
         navigate('/');
       }
     } catch (error) {

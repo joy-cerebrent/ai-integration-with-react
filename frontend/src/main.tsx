@@ -5,6 +5,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import { AuthProvider } from "@/context/AuthContext.tsx";
 import { ThemeProvider } from "@/context/ThemeProvider.tsx";
+import { SocketProvider } from "@/context/SocketProvider.tsx";
+import { Toaster } from "@/components/ui/sonner.tsx";
 
 import App from "./App.tsx";
 import "./index.css";
@@ -15,16 +17,19 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <BrowserRouter>
       <AuthProvider>
-        <QueryClientProvider client={queryClient}>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-          >
-            <App />
-          </ThemeProvider>
-        </QueryClientProvider>
+        <SocketProvider serverUrl="http://localhost:3000">
+          <QueryClientProvider client={queryClient}>
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="system"
+              enableSystem
+              disableTransitionOnChange
+            >
+              <App />
+              <Toaster />
+            </ThemeProvider>
+          </QueryClientProvider>
+        </SocketProvider>
       </AuthProvider>
     </BrowserRouter>
   </StrictMode>,
