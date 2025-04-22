@@ -6,8 +6,6 @@ export const getUserConversations = async (req, res) => {
   try {
     const userId = req.params.userId;
 
-    console.log(req.user.id)
-
     if (userId !== req.user.id) {
       return res.status(403).json({ message: 'Forbidden: Access Denied' });
     }
@@ -38,8 +36,6 @@ export const createConversation = async (req, res) => {
   try {
     const userId = req.user.id;
     const { title } = req.body;
-
-    console.log(userId)
 
     if (!userId) {
       return res.status(401).json({ message: "Unauthorized" });

@@ -1,5 +1,5 @@
 import Conversation from "../models/Conversation.js";
-import "../models/Message.js";
+import Message from "../models/Message.js";
 
 export const getConversationMessages = async (req, res) => {
   try {
@@ -31,3 +31,21 @@ export const getConversationMessages = async (req, res) => {
     return res.status(500).json({ message: "Server error" });
   }
 };
+
+export const saveMessageToDb = async (req, res) => {
+  const { conversationId, content, sender } = req.body;
+
+  const newMsg = await Message.create({
+    conversationId,
+    content,
+    sender,
+  });
+
+  await Conversation.findByIdAndUpdate(conversationId, {
+    $push: {
+      messages: newMsg._id
+    },
+  });
+
+  return res.status(200).json(newMsg);
+}

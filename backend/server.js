@@ -3,9 +3,11 @@ import cors from 'cors';
 import path from "path"
 import dotenv from 'dotenv';
 
+import aiRoutes from './routes/ai.routes.js';
 import authRoutes from './routes/auth.routes.js';
 import conversationRoutes from './routes/conversation.routes.js';
 import messageRoutes from './routes/message.routes.js';
+
 import connectToMongoDB from './db/connectToDb.js';
 
 dotenv.config();
@@ -26,6 +28,7 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 
+app.use('/api/ai', aiRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/conversations', conversationRoutes);
 app.use('/api/messages', messageRoutes);

@@ -24,7 +24,7 @@ const Chat = () => {
     handleSubmit,
     reset,
     setValue,
-    watch,
+    // watch,
     formState: { errors, isSubmitting },
   } = useForm<MessageSchemaType>({
     resolver: zodResolver(MessageSchema),
@@ -65,7 +65,53 @@ const Chat = () => {
   }, [messages]);
 
   const onSubmit = async (data: MessageSchemaType) => {
-    // TODO
+    const userMessage = {
+      conversationId: id,
+      content: data.prompt,
+      sender: "user"
+    }
+
+    setMessages((prev) => [...prev, userMessage]);
+
+    reset();
+
+    const token = localStorage.getItem("accessToken");
+
+    await fetch("http://localhost:3000/api/messages/save", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(userMessage),
+    });
+
+    const aiResponse = await fetch("http://localhost:3000/api/ai", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ prompt: data.prompt })
+    });
+
+    const aiContent = await aiResponse.json();
+
+    const aiMessage = {
+      conversationId: id,
+      content: aiContent,
+      sender: "ai"
+    }
+
+    setMessages((prev) => [...prev, aiMessage]);
+
+    await fetch("http://localhost:3000/api/messages/save", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(aiMessage),
+    });
   };
 
   if (loading) return <div>Loading...</div>;
