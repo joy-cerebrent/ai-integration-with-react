@@ -17,7 +17,6 @@ import {
 import { cn } from "@/lib/utils";
 import { ThemeToggler } from "./ThemeToggler";
 import { useAuth } from "@/context/AuthContext";
-import { useEffect, useState } from "react";
 import NotificationMenu from "./Notification";
 
 const Topbar = () => {
