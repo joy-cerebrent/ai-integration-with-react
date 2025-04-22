@@ -3,10 +3,9 @@ import cors from 'cors';
 import path from "path"
 import dotenv from 'dotenv';
 
-
 import authRoutes from './routes/auth.routes.js';
 import conversationRoutes from './routes/conversation.routes.js';
-// import messageRoutes from './routes/message.routes.js';
+import messageRoutes from './routes/message.routes.js';
 import connectToMongoDB from './db/connectToDb.js';
 
 dotenv.config();
@@ -29,7 +28,7 @@ app.use(express.json());
 
 app.use('/api/auth', authRoutes);
 app.use('/api/conversations', conversationRoutes);
-// app.use('/api/messages', messageRoutes);
+app.use('/api/messages', messageRoutes);
 
 app.get('/', (req, res) => {
   res.send('API is running...');
