@@ -15,8 +15,9 @@ const Chat = () => {
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
   const [messages, setMessages] = useState<any[]>([]);
-  const [title, setTitle] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [title, setTitle] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(true);
+  const [isThinking, setIsThinking] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
   const {
@@ -69,13 +70,15 @@ const Chat = () => {
       conversationId: id,
       content: data.prompt,
       sender: "user"
-    }
+    };
 
     setMessages((prev) => [...prev, userMessage]);
 
     reset();
 
     const token = localStorage.getItem("accessToken");
+
+    setIsThinking(true);
 
     await fetch("http://localhost:3000/api/messages/save", {
       method: "POST",
@@ -91,28 +94,61 @@ const Chat = () => {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ prompt: data.prompt })
+      body: JSON.stringify({ prompt: data.prompt }),
     });
-
+    
     const aiContent = await aiResponse.json();
+    
+    setIsThinking(false);
+    
+    const words = aiContent.split(" ");
+
+    let aiMessageContent = "";
+    let index = 0;
 
     const aiMessage = {
       conversationId: id,
-      content: aiContent,
-      sender: "ai"
-    }
+      content: aiMessageContent,
+      sender: "ai",
+    };
 
     setMessages((prev) => [...prev, aiMessage]);
 
-    await fetch("http://localhost:3000/api/messages/save", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(aiMessage),
-    });
+    const addWord = () => {
+      if (index < words.length) {
+        aiMessageContent += `${words[index]} `;
+        index++;
+
+        setMessages((prev) => {
+          const updatedMessages = [...prev];
+          updatedMessages[updatedMessages.length - 1] = {
+            ...updatedMessages[updatedMessages.length - 1],
+            content: aiMessageContent.trim(),
+          };
+          return updatedMessages;
+        });
+
+        setTimeout(addWord, 100);
+      } else {
+
+        fetch("http://localhost:3000/api/messages/save", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            conversationId: id,
+            content: aiMessageContent.trim(),
+            sender: "ai"
+          }),
+        });
+      }
+    };
+
+    addWord();
   };
+
 
   if (loading) return <div>Loading...</div>;
   if (error) return <div>Error: {error}</div>;
@@ -168,6 +204,17 @@ const Chat = () => {
             )}
           </li>
         ))}
+
+        {isThinking && (
+          <span className="inline-flex items-end gap-2 bg-neutral-800 self-start px-5 py-1.5 rounded text-white animate-pulse">
+            AI is Thinking
+
+            <span className="size-1 bg-white rounded-full mb-1.5 animate-bounce" />
+            <span className="size-1 bg-white rounded-full mb-1.5 animate-bounce delay-150" />
+            <span className="size-1 bg-white rounded-full mb-1.5 animate-bounce delay-300" />
+          </span>
+        )}
+
         <div ref={bottomRef} />
       </ul>
 
