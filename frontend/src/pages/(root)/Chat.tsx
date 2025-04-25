@@ -100,7 +100,7 @@ const Chat = () => {
     const aiContent = await aiResponse.json();
     
     setIsThinking(false);
-    
+
     const words = aiContent.split(" ");
 
     let aiMessageContent = "";
@@ -128,7 +128,7 @@ const Chat = () => {
           return updatedMessages;
         });
 
-        setTimeout(addWord, 100);
+        setTimeout(addWord, 50);
       } else {
 
         fetch("http://localhost:3000/api/messages/save", {
