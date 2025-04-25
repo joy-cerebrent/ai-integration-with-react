@@ -4,6 +4,7 @@ import { Bell, CheckCircle, Loader2, XCircle, Circle, Trash } from "lucide-react
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
+import { useSocket } from "@/context/SocketProvider";
 
 interface Notification {
   _id: string;
@@ -13,6 +14,8 @@ interface Notification {
 }
 
 const NotificationMenu = () => {
+  const socket = useSocket();
+
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
   useEffect(() => {
@@ -42,6 +45,24 @@ const NotificationMenu = () => {
 
     fetchNotifications();
   }, []);
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleNewNotification = (notification: any) => {
+      console.log("🔔 New Notification:", notification);
+      toast.success(`New notification: ${notification.content}`);
+      setNotifications((prev) => {
+        return [...prev, notification];
+      });
+    };
+
+    socket.on("newNotification", handleNewNotification);
+
+    return () => {
+      socket.off("newNotification", handleNewNotification);
+    };
+  }, [socket]);
 
   const handleMarkAsRead = async (notificationId: string) => {
     try {

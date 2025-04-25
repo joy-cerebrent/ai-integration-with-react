@@ -1,8 +1,7 @@
+import dotenv from 'dotenv';
 import express from 'express';
 import cors from 'cors';
 import path from "path";
-import dotenv from 'dotenv';
-import http from "http";
 
 import aiRoutes from './routes/ai.routes.js';
 import authRoutes from './routes/auth.routes.js';
@@ -16,8 +15,8 @@ import { app, server } from './socket/socket.js';
 
 dotenv.config();
 
-const PORT = process.env.PORT || 3000;
 const __dirname = path.resolve();
+const PORT = process.env.PORT || 3000;
 
 const corsOptions = {
   credentials: true,

@@ -35,15 +35,10 @@ export const addNotificationToUser = async (req, res) => {
     user.notifications.push(newNotification._id);
     await user.save();
 
-    const receiverSocketId = getReceiverSocketId(userId);
+    // const receiverSocketId = getReceiverSocketId(userId);
 
-    if (receiverSocketId) {
-      io.to(receiverSocketId).emit("newNotification", newNotification);
-
-      console.log(`Notification sent to user ${userId}`);
-    } else {
-      console.log(`No socket found for user ${userId}`);
-    }
+    io.emit("newNotification", newNotification);
+    console.log(`Broadcasted notification to all users`);
 
     res.status(201).json({
       message: "Notification added successfully",
