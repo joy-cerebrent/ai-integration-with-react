@@ -21,17 +21,6 @@ export const getReceiverSocketId = (receiverId) => {
 const handleSocketConnection = (socket) => {
   console.log("A User Connected : ", socket.id);
 
-  const userId = socket.handshake.query.userId;
-
-  console.log(userId)
-
-  if (userId && userId !== "undefined") {
-    userSocketMap.set(userId, socket.id);
-    console.log(`User ${userId} mapped to socket ID: ${socket.id}`);
-  } else {
-    console.log("User ID is missing or undefined");
-  }
-
   socket.on("disconnect", () => {
     console.log("User Disconnected: ", socket.id);
     
