@@ -38,7 +38,7 @@ const Topbar = () => {
         <div className="flex items-center gap-2">
           <ThemeToggler />
 
-          <NotificationMenu />
+          {/* <NotificationMenu /> */}
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

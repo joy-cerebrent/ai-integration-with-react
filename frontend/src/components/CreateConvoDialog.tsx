@@ -48,13 +48,21 @@ const CreateConvoDialog = ({
     mutationFn: async ({ userId, title }: { userId: string; title: string }) => {
       const token = localStorage.getItem("accessToken");
 
-      const response = await fetch("http://localhost:3000/api/conversations/create", {
+      // Using the Task conversation API endpoint
+      const response = await fetch("http://localhost:5109/api/Task/conversation", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ userId, title }),
+        body: JSON.stringify({ 
+          userId,
+          author: 1, // Assuming 1 is for user
+          type: 0, // Initial message type
+          contentType: 0, // Text content type
+          message: title, // Using title as the initial message
+          timestamp: new Date().toISOString()
+        }),
       });
 
       if (!response.ok) {
@@ -65,7 +73,7 @@ const CreateConvoDialog = ({
       return data.id;
     },
     onError: (error: Error) => {
-      toast.error(error.message || "Failed to delete conversation");
+      toast.error(error.message || "Failed to create conversation");
     },
     onSuccess: () => {
       toast.success("Conversation created");
@@ -73,6 +81,7 @@ const CreateConvoDialog = ({
   });
 
   const onSubmit = async ({ title }: TitleSchemaType) => {
+    console.log('user', user);
     if (!user?.id) return;
 
     try {

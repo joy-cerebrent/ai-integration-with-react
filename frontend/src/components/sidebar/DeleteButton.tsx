@@ -18,7 +18,7 @@ export default function DeleteButton({ conversationId }: DeleteButtonProps) {
     mutationFn: async ({ conversationId }: { conversationId: string }) => {
       const token = localStorage.getItem("accessToken");
 
-      const response = await fetch(`http://localhost:3000/api/conversations/${conversationId}`, {
+      const response = await fetch(`http://localhost:5109/api/conversations/${conversationId}`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
