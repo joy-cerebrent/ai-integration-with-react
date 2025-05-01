@@ -35,14 +35,9 @@ export const getUserConversations = async (req, res) => {
 export const createConversation = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { title } = req.body;
 
     if (!userId) {
       return res.status(401).json({ message: "Unauthorized" });
-    }
-
-    if (!title || typeof title !== "string" || title.trim().length === 0) {
-      return res.status(400).json({ message: "Title is required" });
     }
 
     const user = await User.findById(userId);
@@ -52,7 +47,7 @@ export const createConversation = async (req, res) => {
 
     const newConversation = await Conversation.create({
       userId,
-      title: title.trim(),
+      title: "New Chat",
       messages: [],
     });
 
@@ -65,6 +60,36 @@ export const createConversation = async (req, res) => {
     return res.status(500).json({ message: "Server Error" });
   }
 };
+
+export const renameConversation = async (req, res) => {
+  try {
+    const { conversationId } = req.params;
+    const { title } = req.body;
+    const userId = req.user.id;
+
+    if (!title || title.trim() === "") {
+      return res.status(400).json({ message: "Title is required" });
+    }
+
+    const conversation = await Conversation.findById(conversationId);
+
+    if (!conversation) {
+      return res.status(404).json({ message: "Conversation not found" });
+    }
+
+    if (conversation.userId.toString() !== userId) {
+      return res.status(403).json({ message: "Forbidden: Not your conversation" });
+    }
+
+    conversation.title = title.trim();
+    await conversation.save();
+
+    return res.status(200).json({ message: "Title updated successfully", conversation });
+  } catch (error) {
+    console.error("Error updating title:", error);
+    return res.status(500).json({ message: "Server Error" });
+  }
+}
 
 export const deleteConversation = async (req, res) => {
   try {

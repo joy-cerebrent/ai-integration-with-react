@@ -24,10 +24,10 @@ const handleSocketConnection = (socket) => {
   socket.on("disconnect", () => {
     console.log("User Disconnected: ", socket.id);
     
-    if (userId) {
-      userSocketMap.delete(userId);
-      console.log(`User ${userId} removed from map`);
-    }
+    // if (userId) {
+    //   userSocketMap.delete(userId);
+    //   console.log(`User ${userId} removed from map`);
+    // }
   });
 };
 
