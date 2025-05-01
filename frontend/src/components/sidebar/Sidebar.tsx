@@ -1,11 +1,16 @@
+import { useState } from 'react';
+import { Menu, PlusCircleIcon } from "lucide-react";
+
 import { useAuth } from '@/context/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 
 import ChatLink from '@/components/sidebar/ChatLink';
-import CreateConvoDialog from '@/components/CreateConvoDialog';
+import CreateConvoButton from '@/components/CreateConvoButton';
+import { cn } from '@/lib/utils';
 
 const Sidebar = () => {
   const { user } = useAuth();
+  const [collapsed, setCollapsed] = useState<boolean>(false);
 
   const { data: conversations, isLoading, error } = useQuery({
     queryKey: ["fetchConversations", user?.id],
@@ -21,15 +26,28 @@ const Sidebar = () => {
       });
 
       const data = await res.json();
-      
+
       return data.conversations;
     }
   })
 
   return (
-    <aside className="w-64 h-screen bg-white dark:bg-neutral-950 border-r border-neutral-200 dark:border-neutral-800 p-4 pt-24 flex flex-col justify-between">
+    <aside
+      className={cn(
+        "h-screen bg-white dark:bg-neutral-950 border-r border-neutral-200 dark:border-neutral-800 pt-24 flex flex-col justify-between transition-all duration-300 ease-in-out overflow-hidden",
+        collapsed ? "max-w-0 px-0" : "max-w-80 w-80 px-4 pb-4"
+      )}
+    >
+
       <div className="flex flex-col gap-4 overflow-y-auto">
-        <h2 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100">
+        <button
+          className="fixed cursor-pointer z-50 p-1 top-24 bg-white dark:bg-neutral-900 rounded-md shadow"
+          onClick={() => setCollapsed((prev) => !prev)}
+        >
+          <Menu />
+        </button>
+
+        <h2 className="relative pl-10 text-xl font-semibold text-neutral-900 dark:text-neutral-100">
           Conversations
         </h2>
 
@@ -50,7 +68,10 @@ const Sidebar = () => {
         </ul>
       </div>
 
-      <CreateConvoDialog triggerButtonText="New Conversation" fullWidth />
+      <CreateConvoButton fullWidth>
+        New Conversation
+        <PlusCircleIcon />
+      </CreateConvoButton>
     </aside>
   )
 }

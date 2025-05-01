@@ -12,7 +12,7 @@ export default function RootLayout() {
   return (
     <SocketProvider>
       <Topbar />
-      <section className="flex w-full max-w-7xl mx-auto">
+      <section className="flex w-full max-w-[1440px] mx-auto">
         <Sidebar />
         <Outlet />
       </section>

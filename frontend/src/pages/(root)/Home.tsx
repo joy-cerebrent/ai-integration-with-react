@@ -1,4 +1,4 @@
-import CreateConvoDialog from '@/components/CreateConvoDialog';
+import CreateConvoButton from '@/components/CreateConvoButton';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 
 const Home = () => {
@@ -13,10 +13,12 @@ const Home = () => {
             Click on one of the chats on the sidebar, or start a new conversation by clicking the button below.
           </h3>
 
-          <CreateConvoDialog fullWidth icon={false} />
+          <CreateConvoButton fullWidth>
+            Create a new Converstaion
+          </CreateConvoButton>
         </CardContent>
       </Card>
-    </div>
+    </div >
   )
 }
 

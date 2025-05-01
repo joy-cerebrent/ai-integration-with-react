@@ -1,22 +1,22 @@
-import { useAuth } from "@/context/AuthContext";
-import { useNavigate } from "react-router-dom";
+import React, { ComponentPropsWithoutRef } from "react";
 import { useMutation } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { PlusCircleIcon } from "lucide-react";
+
+import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 type CreateConvoButtonProps = {
-  triggerButtonText?: string;
+  children: React.ReactNode;
   fullWidth?: boolean;
-  icon?: boolean;
 };
 
 const CreateConvoButton = ({
-  triggerButtonText = "Create Convo",
+  children,
   fullWidth = false,
-  icon = true,
-}: CreateConvoButtonProps) => {
+  ...props
+}: CreateConvoButtonProps & ComponentPropsWithoutRef<"button">) => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -30,7 +30,7 @@ const CreateConvoButton = ({
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ userId }), // no title sent
+        body: JSON.stringify({ userId }),
       });
 
       if (!response.ok) {
@@ -54,9 +54,9 @@ const CreateConvoButton = ({
     try {
       const newConversationId = await createConversationMutation({ userId: user.id });
       navigate(`/chat/${newConversationId}`);
-      window.location.reload(); // optional: if chat page needs refresh
-    } catch {
-      // handled by onError
+      window.location.reload();
+    } catch (error) {
+      console.error(error)
     }
   };
 
@@ -65,9 +65,9 @@ const CreateConvoButton = ({
       onClick={handleClick}
       className={cn("flex items-center", fullWidth && "w-full text-center")}
       disabled={isPending}
+      {...props}
     >
-      {isPending ? "Creating..." : triggerButtonText}
-      {icon && <PlusCircleIcon className="ml-2 w-4 h-4" />}
+      {isPending ? "Creating..." : children}
     </Button>
   );
 };
