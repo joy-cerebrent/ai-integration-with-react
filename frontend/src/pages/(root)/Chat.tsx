@@ -9,7 +9,7 @@ import { useForm } from 'react-hook-form';
 import { MessageSchema, MessageSchemaType } from '@/validators/ConversationSchema';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Input } from '@/components/ui/input';
-import { PenIcon, X } from 'lucide-react';
+import ChatTitle from '@/components/ChatTitle';
 
 const Chat = () => {
   const { id } = useParams();
@@ -20,9 +20,6 @@ const Chat = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [isThinking, setIsThinking] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-
-  const [isEditingTitle, setIsEditingTitle] = useState(false);
-  const [newTitle, setNewTitle] = useState(title);
 
   const {
     register,
@@ -52,7 +49,6 @@ const Chat = () => {
 
       const data = await res.json();
       setTitle(data.title);
-      setNewTitle(data.title);
       setMessages(data.messages);
       setError(null);
     } catch (err: any) {
@@ -154,65 +150,15 @@ const Chat = () => {
     addWord();
   };
 
-  const handleTitleRename = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    try {
-      const token = localStorage.getItem("accessToken");
-      const res = await fetch(`http://localhost:3000/api/conversations/rename/${id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ title: newTitle }),
-      });
-
-      if (!res.ok) throw new Error("Failed to rename title");
-
-      setTitle(newTitle);
-      setIsEditingTitle(false);
-
-      window.location.reload();
-    } catch (err) {
-      console.error("Rename failed:", err);
-    }
-  };
-
-
   if (loading) return <div>Loading...</div>;
   if (error) return <div>Error: {error}</div>;
 
   return (
     <div className="flex h-screen flex-col p-6 pt-24 w-full bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100">
-      <div className="w-full flex items-center gap-2 group text-2xl font-semibold pb-2 mb-4 border-b-[1px]">
-        {isEditingTitle ? (
-          <form onSubmit={handleTitleRename} className="flex items-center gap-2 w-full">
-            <Input
-              value={newTitle}
-              onChange={(e) => setNewTitle(e.target.value)}
-              className="w-full"
-              autoFocus
-            />
-            <X 
-              size={20}
-              onClick={() => setIsEditingTitle(false)}
-            />
-            <Button type="submit" size="sm" className="text-sm">
-              Save
-            </Button>
-          </form>
-        ) : (
-          <>
-            <span className="truncate max-w-[calc(100%-2rem)]">{title}</span>
-            <PenIcon
-              className="opacity-0 group-hover:opacity-100 cursor-pointer"
-              size={20}
-              onClick={() => setIsEditingTitle(true)}
-            />
-          </>
-        )}
-      </div>
+      <ChatTitle
+        id={id!}
+        title={title}
+      />
 
       <ul className="flex-1 overflow-y-auto rounded space-y-4 mb-6">
         {messages.map((msg) => (
