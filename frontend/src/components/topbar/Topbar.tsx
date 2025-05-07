@@ -15,9 +15,9 @@ import {
   DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { ThemeToggler } from "./ThemeToggler";
 import { useAuth } from "@/context/AuthContext";
-import NotificationMenu from "./Notification";
+import { ThemeToggler } from "@/components/topbar/ThemeToggler";
+import NotificationMenu from "@/components/topbar/Notification";
 
 const Topbar = () => {
   const { theme, setTheme } = useTheme();

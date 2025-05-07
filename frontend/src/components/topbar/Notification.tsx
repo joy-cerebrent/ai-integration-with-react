@@ -1,12 +1,21 @@
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
 import { Bell, CheckCircle, Loader2, XCircle, Circle, Trash } from "lucide-react";
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
-import { cn } from "@/lib/utils";
-import { Button } from "../ui/button";
-import { useSocket } from "@/context/SocketProvider";
 
-interface Notification {
+import { toast } from "sonner";
+
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator
+} from "@/components/ui/dropdown-menu";
+import { useSocket } from "@/context/SocketProvider";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+
+type Notification = {
   _id: string;
   type: string;
   content: string;

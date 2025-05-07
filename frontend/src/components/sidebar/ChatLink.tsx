@@ -3,7 +3,7 @@ import { useLocation, Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import DeleteButton from "@/components/sidebar/DeleteButton";
 
-interface ChatLinkProps {
+type ChatLinkProps = {
   id: string;
   title: string;
 }

@@ -1,8 +1,10 @@
 import { useState } from 'react';
-import { Input } from './ui/input';
 import { PenIcon, X } from 'lucide-react';
-import { Button } from './ui/button';
 import { useForm } from 'react-hook-form';
+
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+
 import { TitleSchema, TitleSchemaType } from '@/validators/ConversationSchema';
 import { zodResolver } from '@hookform/resolvers/zod';
 

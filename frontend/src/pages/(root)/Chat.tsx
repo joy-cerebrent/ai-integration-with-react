@@ -1,15 +1,20 @@
-import { cn } from '@/lib/utils';
-import { useParams } from 'react-router-dom';
-import ReactMarkdown from "react-markdown";
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { atomDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { useEffect, useRef, useState } from 'react';
-import { Button } from '@/components/ui/button';
+import { useParams } from 'react-router-dom';
+
 import { useForm } from 'react-hook-form';
-import { MessageSchema, MessageSchemaType } from '@/validators/ConversationSchema';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { zodResolver } from '@hookform/resolvers/zod';
+
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import ChatTitle from '@/components/ChatTitle';
+
+import { cn } from '@/lib/utils';
+import { MessageSchema, MessageSchemaType } from '@/validators/ConversationSchema';
+
 
 const Chat = () => {
   const { id } = useParams();
@@ -160,7 +165,7 @@ const Chat = () => {
         title={title}
       />
 
-      <ul className="flex-1 overflow-y-auto rounded space-y-4 mb-6">
+      <ul className="flex-1 overflow-y-auto rounded space-y-4 mb-6 pr-1.5">
         {messages.map((msg) => (
           <li
             key={msg._id}
@@ -180,6 +185,7 @@ const Chat = () => {
               <>
                 <strong>Gemini:</strong>
                 <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
                   components={{
                     code({ className, children, ...rest }) {
                       const match = /language-(\w+)/.exec(className || "");
@@ -199,6 +205,36 @@ const Chat = () => {
                         </code>
                       );
                     },
+                    table: ({ children }) => (
+                      <table className="w-full border my-4 border-neutral-300 dark:border-neutral-700 text-sm">
+                        {children}
+                      </table>
+                    ),
+                    thead: ({ children }) => (
+                      <thead className="bg-neutral-200 dark:bg-neutral-800">
+                        {children}
+                      </thead>
+                    ),
+                    tbody: ({ children }) => (
+                      <tbody className="bg-white dark:bg-neutral-900">
+                        {children}
+                      </tbody>
+                    ),
+                    tr: ({ children }) => (
+                      <tr className="border-b border-neutral-300 dark:border-neutral-700">
+                        {children}
+                      </tr>
+                    ),
+                    th: ({ children }) => (
+                      <th className="px-4 py-2 text-left font-medium text-neutral-700 dark:text-neutral-200">
+                        {children}
+                      </th>
+                    ),
+                    td: ({ children }) => (
+                      <td className="px-4 py-2 text-neutral-600 dark:text-neutral-300">
+                        {children}
+                      </td>
+                    ),
                   }}
                 >
                   {msg.content}

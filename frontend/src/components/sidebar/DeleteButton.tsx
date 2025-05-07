@@ -2,7 +2,6 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { Trash } from "lucide-react";
 import { toast } from "sonner";
 
-
 import { Button } from "@/components/ui/button";
 import { useMutation } from "@tanstack/react-query";
 
