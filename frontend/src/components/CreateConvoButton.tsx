@@ -1,5 +1,5 @@
 import React, { ComponentPropsWithoutRef } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -19,6 +19,7 @@ const CreateConvoButton = ({
 }: CreateConvoButtonProps & ComponentPropsWithoutRef<"button">) => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const { mutateAsync: createConversationMutation, isPending } = useMutation({
     mutationFn: async ({ userId }: { userId: string }) => {
@@ -38,6 +39,7 @@ const CreateConvoButton = ({
       }
 
       const data = await response.json();
+
       return data.id;
     },
     onError: (error: Error) => {
@@ -45,6 +47,7 @@ const CreateConvoButton = ({
     },
     onSuccess: () => {
       toast.success("Conversation created");
+      queryClient.invalidateQueries({ queryKey: ["fetchConversations", user?.id] });
     }
   });
 
@@ -54,7 +57,6 @@ const CreateConvoButton = ({
     try {
       const newConversationId = await createConversationMutation({ userId: user.id });
       navigate(`/chat/${newConversationId}`);
-      window.location.reload();
     } catch (error) {
       console.error(error)
     }

@@ -28,7 +28,7 @@ const Sidebar = () => {
       const data = await res.json();
 
       return data.conversations;
-    }
+    },
   });
 
   return (

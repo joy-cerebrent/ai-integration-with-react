@@ -4,17 +4,22 @@ import { useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { useQuery } from '@tanstack/react-query';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { zodResolver } from '@hookform/resolvers/zod';
 
+import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import ChatTitle from '@/components/ChatTitle';
 
 import { cn } from '@/lib/utils';
-import { MessageSchema, MessageSchemaType } from '@/validators/ConversationSchema';
 import { useTitle } from '@/hooks/useTitle';
+import {
+  MessageSchema,
+  type MessageSchemaType
+} from '@/validators/ConversationSchema';
 
 
 const Chat = () => {
@@ -23,16 +28,13 @@ const Chat = () => {
 
   const [messages, setMessages] = useState<any[]>([]);
   const [title, setTitle] = useState<string>('');
-  const [loading, setLoading] = useState<boolean>(true);
   const [isThinking, setIsThinking] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
 
   const {
     register,
     handleSubmit,
     reset,
     setValue,
-    // watch,
     formState: { errors, isSubmitting },
   } = useForm<MessageSchemaType>({
     resolver: zodResolver(MessageSchema),
@@ -40,8 +42,9 @@ const Chat = () => {
 
   useTitle(title);
 
-  const fetchMessages = async () => {
-    try {
+  const { isLoading, isError, error } = useQuery({
+    queryKey: ["conversation", id],
+    queryFn: async () => {
       const token = localStorage.getItem("accessToken");
       const res = await fetch(`http://localhost:3000/api/messages/${id}`, {
         method: 'GET',
@@ -56,19 +59,13 @@ const Chat = () => {
       }
 
       const data = await res.json();
+
       setTitle(data.title);
       setMessages(data.messages);
-      setError(null);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  useEffect(() => {
-    fetchMessages();
-  }, [id]);
+      return data;
+    },
+  });
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -158,8 +155,8 @@ const Chat = () => {
     addWord();
   };
 
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error}</div>;
+  if (isLoading) return <div>Loading...</div>;
+  if (isError) return <div>Error: {error.toString()}</div>;
 
   return (
     <div className="flex h-screen flex-col p-6 pt-24 w-full bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100">
@@ -277,8 +274,7 @@ const Chat = () => {
         </div>
 
         <div className="w-full">
-          <Input
-            type="text"
+          <Textarea
             placeholder="Type your message..."
             {...register("prompt")}
             disabled={isSubmitting}

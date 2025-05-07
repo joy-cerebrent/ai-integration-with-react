@@ -3,15 +3,18 @@ import { Trash } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/context/AuthContext";
 
 type DeleteButtonProps = {
   conversationId: string;
 }
 
 export default function DeleteButton({ conversationId }: DeleteButtonProps) {
+  const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const queryClient = useQueryClient();
 
   const { mutateAsync: deleteConversationMutation } = useMutation({
     mutationFn: async ({ conversationId }: { conversationId: string }) => {
@@ -37,6 +40,7 @@ export default function DeleteButton({ conversationId }: DeleteButtonProps) {
     },
     onSuccess: () => {
       toast.success("Conversation deleted successfully");
+      queryClient.invalidateQueries({ queryKey: ["fetchConversations", user?.id] });
     }
   });
 
@@ -46,14 +50,12 @@ export default function DeleteButton({ conversationId }: DeleteButtonProps) {
     if (location.pathname === `/chat/${conversationId}`) {
       navigate("/");
     }
-
-    window.location.reload();
   };
 
   return (
     <Button
       onClick={handleDelete}
-      className="p-1 opacity-0 group-hover:opacity-100 transition"
+      className="p-1 opacity-0 group-hover:opacity-100 transition cursor-pointer"
       variant="destructive"
       title="Delete"
     >

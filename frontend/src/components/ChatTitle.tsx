@@ -7,6 +7,9 @@ import { Button } from '@/components/ui/button';
 
 import { TitleSchema, TitleSchemaType } from '@/validators/ConversationSchema';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import { useAuth } from '@/context/AuthContext';
 
 type ChatTitleProps = {
   id: string;
@@ -14,6 +17,9 @@ type ChatTitleProps = {
 };
 
 const ChatTitle = ({ id, title }: ChatTitleProps) => {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
   const [isEditingTitle, setIsEditingTitle] = useState(false);
 
   const {
@@ -28,25 +34,38 @@ const ChatTitle = ({ id, title }: ChatTitleProps) => {
     },
   });
 
-  const handleTitleRename = async (data: TitleSchemaType) => {
-    try {
+  const { mutateAsync: renameTitleMutation } = useMutation({
+    mutationFn: async ({ id, title }: { id: string; title: string }) => {
+      // setTitle(title);
+
       const token = localStorage.getItem('accessToken');
+
       const res = await fetch(`http://localhost:3000/api/conversations/rename/${id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ title: data.title }),
+        body: JSON.stringify({ title }),
       });
 
       if (!res.ok) throw new Error('Failed to rename title');
 
-      setIsEditingTitle(false);
-      window.location.reload();
-    } catch (err) {
-      console.error('Rename failed:', err);
-    }
+      return res.json();
+    },
+    onSuccess: () => {
+      toast.success("Title Updated");
+      queryClient.invalidateQueries({ queryKey: ['fetchConversations', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['conversation', id] });
+    },
+    onError: () => {
+      toast.error("Failed to rename title")
+    },
+  });
+
+  const handleTitleRename = async (data: TitleSchemaType) => {
+    await renameTitleMutation({ id, title: data.title });
+    setIsEditingTitle(false);
   };
 
   return (

@@ -30,7 +30,7 @@ const Topbar = () => {
 
   return (
     <header className="fixed top-0 w-full border-b bg-background shadow-sm z-50">
-      <nav className="px-6 py-4 flex items-center justify-between max-w-7xl mx-auto">
+      <nav className="px-6 py-4 flex items-center justify-between max-w-[1440px] mx-auto">
         <a href="/">
           <h1 className="text-xl font-semibold">My App</h1>
         </a>
