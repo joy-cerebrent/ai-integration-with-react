@@ -14,6 +14,7 @@ import ChatTitle from '@/components/ChatTitle';
 
 import { cn } from '@/lib/utils';
 import { MessageSchema, MessageSchemaType } from '@/validators/ConversationSchema';
+import { useTitle } from '@/hooks/useTitle';
 
 
 const Chat = () => {
@@ -36,6 +37,8 @@ const Chat = () => {
   } = useForm<MessageSchemaType>({
     resolver: zodResolver(MessageSchema),
   });
+
+  useTitle(title);
 
   const fetchMessages = async () => {
     try {

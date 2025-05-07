@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { LoginSchema, type LoginSchemaType } from "@/validators/AuthSchema";
 import { useAuth } from "@/context/AuthContext";
+import { useTitle } from "@/hooks/useTitle";
 
 const Login: React.FC = () => {
   const { login } = useAuth();
@@ -23,6 +24,8 @@ const Login: React.FC = () => {
   const form = useForm<LoginSchemaType>({
     resolver: zodResolver(LoginSchema),
   });
+  
+  useTitle("Login");
 
   const onSubmit = async (values: LoginSchemaType) => {
     login(values);

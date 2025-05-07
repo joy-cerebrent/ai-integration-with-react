@@ -19,6 +19,7 @@ import {
   type RegisterSchemaType,
 } from "@/validators/AuthSchema";
 import { useAuth } from "@/context/AuthContext";
+import { useTitle } from "@/hooks/useTitle";
 
 const Register: React.FC = () => {
   const { register } = useAuth();
@@ -26,6 +27,8 @@ const Register: React.FC = () => {
   const form = useForm<RegisterSchemaType>({
     resolver: zodResolver(RegisterSchema),
   });
+
+  useTitle("Register");
 
   const onSubmit = async (values: RegisterSchemaType) => {
     await register(values);

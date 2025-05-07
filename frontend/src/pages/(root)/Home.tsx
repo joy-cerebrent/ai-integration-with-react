@@ -1,7 +1,10 @@
 import CreateConvoButton from '@/components/CreateConvoButton';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { useTitle } from '@/hooks/useTitle';
 
 const Home = () => {
+  useTitle("Home");
+  
   return (
     <div className="pt-24 h-screen w-full flex justify-center items-center">
       <Card className="w-full max-w-md">
