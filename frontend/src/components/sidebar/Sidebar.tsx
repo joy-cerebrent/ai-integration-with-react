@@ -35,8 +35,8 @@ const Sidebar = () => {
     <div className="flex">
       <aside
         className={cn(
-          "h-screen bg-white dark:bg-neutral-950 border-r border-neutral-200 dark:border-neutral-800 pt-24 flex flex-col justify-between transition-all duration-300 ease-in-out overflow-hidden",
-          collapsed ? "max-w-0 px-0" : "max-w-80 w-80 px-4 pb-4"
+          "h-screen bg-white dark:bg-neutral-950 border-r border-neutral-200 dark:border-neutral-800 flex flex-col justify-between transition-all duration-300 ease-in-out overflow-hidden",
+          collapsed ? "max-w-0 p-0" : "max-w-80 w-80 pt-24 px-4 pb-4"
         )}
       >
 
@@ -70,7 +70,7 @@ const Sidebar = () => {
 
       <div className="h-full flex items-center">
         <button
-          className="cursor-pointer hover:bg-neutral-700 rounded-sm m-0.5"
+          className="cursor-pointer transition hover:bg-neutral-700 rounded-sm m-0.5 py-2"
           onClick={() => setCollapsed((prev) => !prev)}
         >
           <ChevronLeft
@@ -78,6 +78,7 @@ const Sidebar = () => {
               "transition duration-300",
               collapsed && "rotate-180"
             )}
+            size={32}
           />
         </button>
       </div>
