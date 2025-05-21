@@ -17,7 +17,7 @@ const Sidebar = () => {
     queryFn: async () => {
       const token = localStorage.getItem("accessToken");
 
-      const res = await fetch(`http://localhost:3000/api/conversations/${user?.id}`, {
+      const res = await fetch(`http://localhost:5109/api/Task/conversations`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -27,7 +27,7 @@ const Sidebar = () => {
 
       const data = await res.json();
 
-      return data.conversations;
+      return data;
     },
   });
 
@@ -50,12 +50,12 @@ const Sidebar = () => {
 
           <ul className="space-y-2">
             {conversations?.map((conv: {
-              _id: string;
+              id: string;
               title: string;
             }) => (
               <ChatLink
-                key={conv._id}
-                id={conv._id}
+                key={conv.id}
+                id={conv.id}
                 title={conv.title}
               />
             ))}

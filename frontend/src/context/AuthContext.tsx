@@ -22,6 +22,8 @@ interface AuthContextType {
   logout: () => void;
 }
 
+const API_URL = 'http://localhost:5109';
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -30,23 +32,45 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const extractUserInfo = (userDetails:any):User => {
+    // Create user object from validation response
+    const user: User = {
+      id: userDetails.id, // Assuming we don't get an ID directly from validation
+      email: userDetails.email, // Using username from validation as email
+      name: userDetails.name, // Using username from validation as name
+    };
+    localStorage.setItem('user', JSON.stringify(user)); // Store user info in localStorage
+    return user;
+  }
+
   const login = async ({ email, password }: LoginSchemaType) => {
     try {
-      const res = await fetch('http://localhost:3000/api/auth/login', {
+      const res = await fetch(`${API_URL}/api/Auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ 
+          username: email, // API expects username field based on the schema
+          password 
+        }),
       });
 
       const data = await res.json();
 
-      if (!res.ok) throw new Error(data.message);
+      if (!res.ok) throw new Error(data.errorMessage || 'Login failed');
 
-      const { user, accessToken, refreshToken } = data;
+      // API returns AuthResponse object
+      const { accessToken, refreshToken, success, errorMessage } = data;
+      
+      if (!success) {
+        throw new Error(errorMessage || 'Login failed');
+      }
 
       localStorage.setItem('accessToken', accessToken);
       localStorage.setItem('refreshToken', refreshToken);
-      setUser(user);
+      
+      // Get user info from token validation
+      await validateAndSetUserInfo(accessToken);
+      
       navigate('/');
     } catch (error) {
       console.error('Login failed:', error instanceof Error ? error.message : error);
@@ -54,19 +78,58 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const register = async ({ name, email, password }: RegisterSchemaType) => {
+  const validateAndSetUserInfo = async (token: string) => {
     try {
-      const res = await fetch('http://localhost:3000/api/auth/register', {
+      const res = await fetch(`${API_URL}/api/Auth/verify-token-and-get-user`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ token }),
+      });
+  
+      const data = await res.json();
+  
+      if (!res.ok || !data.isValid) {
+        throw new Error(data.errorMessage || 'Token validation failed');
+      }
+  
+      // Create user object from the userDetails in the response
+      const user = extractUserInfo(data.userDetails);
+      
+      setUser(user);
+    } catch (error) {
+      console.error('Token validation failed:', error);
+      throw error;
+    }
+  };
+
+  const register = async ({ name, email, password }: RegisterSchemaType) => {
+    try {
+      const res = await fetch(`${API_URL}/api/Auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: email, // API expects username field
+          email,
+          password,
+          firstName: name.split(' ')[0], // Split name into firstName
+          lastName: name.split(' ').slice(1).join(' ') || '' // and lastName
+        }),
       });
 
       const data = await res.json();
 
-      if (!res.ok) throw new Error(data.message);
+      if (!res.ok) throw new Error(data.errorMessage || data.detail || 'Registration failed');
 
-      await login({ email, password });
+      // We can either directly set tokens from registration response or login
+      if (data.success && data.accessToken && data.refreshToken) {
+        localStorage.setItem('accessToken', data.accessToken);
+        localStorage.setItem('refreshToken', data.refreshToken);
+        await validateAndSetUserInfo(data.accessToken);
+        navigate('/');
+      } else {
+        // If no tokens in registration response, proceed with login
+        await login({ email, password });
+      }
     } catch (error) {
       console.error('Registration failed:', error instanceof Error ? error.message : error);
       throw error;
@@ -74,11 +137,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = async () => {
+    const refreshToken = localStorage.getItem('refreshToken');
+    
     try {
-      await fetch('http://localhost:3000/api/auth/logout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
+      if (refreshToken) {
+        await fetch(`${API_URL}/api/Auth/logout`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refreshToken }),
+        });
+      }
     } catch (error) {
       console.error('Logout request failed:', error instanceof Error ? error.message : 'Unknown error');
     } finally {
@@ -89,9 +157,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-
   const checkAuth = async () => {
     const token = localStorage.getItem('accessToken');
+    const userDetails = localStorage.getItem('user');
+    const parsedUserDetails = userDetails ? JSON.parse(userDetails) : null;
+    if (parsedUserDetails) {
+      setUser(parsedUserDetails); // Set user from localStorage if available
+    }
 
     if (!token) {
       if (!['/login', '/signup'].includes(location.pathname)) {
@@ -102,19 +174,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     try {
-      const res = await fetch('http://localhost:3000/api/auth/validate-token', {
+      const res = await fetch(`${API_URL}/api/Auth/verify-token-and-get-user`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
         },
+        body: JSON.stringify({ token }),
       });
 
       const data = await res.json();
-
-      if (!res.ok) throw new Error(data.message);
-
-      setUser(data.user);
+       
+      if (!res.ok || !data.isValid) {
+        throw new Error(data.errorMessage || 'Invalid token');
+      }
+       
+      // Create user object from validation response
+      const user = extractUserInfo(data.userDetails);
+       
+      setUser(user);
+      
       if (['/login', '/register'].includes(location.pathname)) {
         navigate('/');
       }

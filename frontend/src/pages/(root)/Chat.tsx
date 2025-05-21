@@ -1,35 +1,44 @@
-import { useEffect, useRef, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useEffect, useRef, useState } from "react";
+import { useParams } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { useQuery } from "@tanstack/react-query";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { atomDark } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { zodResolver } from "@hookform/resolvers/zod";
 
-import { useForm } from 'react-hook-form';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import { useQuery } from '@tanstack/react-query';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import ChatTitle from "@/components/ChatTitle";
 
-import { Textarea } from '@/components/ui/textarea';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import ChatTitle from '@/components/ChatTitle';
-
-import { cn } from '@/lib/utils';
-import { useTitle } from '@/hooks/useTitle';
+import { cn } from "@/lib/utils";
+import { useTitle } from "@/hooks/useTitle";
 import {
   MessageSchema,
-  type MessageSchemaType
-} from '@/validators/ConversationSchema';
-import FormComponent from '@/components/FormComponent';
+  type MessageSchemaType,
+} from "@/validators/ConversationSchema";
+import FormComponent from "@/components/FormComponent";
+import { useSocket } from "@/context/SocketProvider";
+import { Author } from "@/enums/Author";
+import { ContentType } from "@/enums/ContentType";
+import { MessageType } from "@/enums/MessageType";
+import { MessageStatus } from "@/enums/MessageStatus";
+import { Message } from "@/types/Message";
+import { Conversation } from "@/types/Conversation";
+import { toast } from "sonner";
 
+const API_URL = __API_BASE_URL__;
 
 const Chat = () => {
+  const { socket, connected } = useSocket();
   const { id } = useParams();
   const bottomRef = useRef<HTMLDivElement | null>(null);
-
-  const [messages, setMessages] = useState<any[]>([]);
-  const [title, setTitle] = useState<string>('');
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [title, setTitle] = useState<string>("");
   const [isThinking, setIsThinking] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
 
   const {
     register,
@@ -43,26 +52,25 @@ const Chat = () => {
 
   useTitle(title);
 
-  const { isLoading, isError, error } = useQuery({
+  const { isLoading, isError } = useQuery({
     queryKey: ["conversation", id],
     queryFn: async () => {
       const token = localStorage.getItem("accessToken");
-      const res = await fetch(`http://localhost:3000/api/messages/${id}`, {
-        method: 'GET',
+      const res = await fetch(`${API_URL}/api/process/conversation/${id}`, {
+        method: "GET",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
       });
 
       if (!res.ok) {
-        throw new Error('Failed to fetch messages');
+        throw new Error("Failed to fetch messages");
       }
 
-      const data = await res.json();
-
-      setTitle(data.title);
-      setMessages(data.messages);
+      const data: Conversation = await res.json();
+      setTitle(data.title || "Conversation");
+      setMessages(data.messages || []);
 
       return data;
     },
@@ -72,120 +80,119 @@ const Chat = () => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const onSubmit = async (data: MessageSchemaType) => {
-    const userMessage = {
-      conversationId: id,
-      content: data.prompt,
-      sender: "user"
-    };
+  useEffect(() => {
+    if (!socket || !connected) return;
 
-    setMessages((prev) => [...prev, userMessage]);
-
-    reset();
-
-    const token = localStorage.getItem("accessToken");
-
-    setIsThinking(true);
-
-    await fetch("http://localhost:3000/api/messages/save", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(userMessage),
-    });
-
-    const aiResponse = await fetch("http://localhost:3000/api/ai", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ prompt: data.prompt }),
-    });
-
-    const aiContent = await aiResponse.json();
-
-    setIsThinking(false);
-
-    const words = aiContent.split(" ");
-
-    let aiMessageContent = "";
-    let index = 0;
-
-    const aiMessage = {
-      conversationId: id,
-      content: aiMessageContent,
-      sender: "ai",
-    };
-
-    setMessages((prev) => [...prev, aiMessage]);
-
-    const addWord = () => {
-      if (index < words.length) {
-        aiMessageContent += `${words[index]} `;
-        index++;
-
+    const handleSocketMessage = (event: MessageEvent) => {
+      try {
+        console.log("📨 Raw Socket Message:", event.data);
+        const response: Message = JSON.parse(event.data);
+        console.log("📨 Socket Message:", response);
         setMessages((prev) => {
           const updatedMessages = [...prev];
-          updatedMessages[updatedMessages.length - 1] = {
-            ...updatedMessages[updatedMessages.length - 1],
-            content: aiMessageContent.trim(),
-          };
+          updatedMessages.push({
+            id: response.id || Date.now().toString(),
+            message: response.message,
+            content: response.content,
+            contentType: response.contentType,
+            type: response.type,
+            timestamp: response.timestamp,
+            status: response.status,
+            author: response.author,
+            sender: response.sender,
+          });
+          if (response.status === MessageStatus.Completed) {
+            setIsThinking(false);
+          }
           return updatedMessages;
         });
-
-        setTimeout(addWord, 50);
-      } else {
-
-        fetch("http://localhost:3000/api/messages/save", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            conversationId: id,
-            content: aiMessageContent.trim(),
-            sender: "ai"
-          }),
-        });
+        setIsThinking(false);
+      } catch (error) {
+        console.error("Error parsing WebSocket message:", error);
       }
     };
 
-    addWord();
+    socket.addEventListener("message", handleSocketMessage);
+
+    return () => {
+      socket.removeEventListener("message", handleSocketMessage);
+    };
+  }, [socket, connected]);
+
+  const onSubmit = async (data: MessageSchemaType) => {
+    const userMessage: Message = {
+      conversationId: id,
+      type: MessageType.Chat,
+      contentType: ContentType.Text,
+      message: data.prompt,
+      content: null,
+      timestamp: new Date().toISOString(),
+      status: MessageStatus.Pending,
+      author: Author.User,
+      sender: "user",
+    };
+
+    setMessages((prev) => [...prev, userMessage]);
+    reset();
+
+    const token = localStorage.getItem("accessToken");
+    setIsThinking(true);
+
+    try {
+      const response = await fetch(`${API_URL}/api/Process/message`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(userMessage),
+      });
+      const responseData = await response.json();
+      if (responseData.status === "error") {
+        toast.error(responseData.message);
+      } else if (responseData.status) {
+        toast.success(responseData.message);
+      }
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("An unknown error occurred");
+      }
+    } finally {
+      // setIsThinking(false)
+    }
   };
 
   if (isLoading) return <div>Loading...</div>;
-  if (isError) return <div>Error: {error.toString()}</div>;
+  if (isError && error) return <div>Error: {error}</div>;
 
   return (
     <div className="flex h-screen flex-col p-6 pt-24 w-full bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100">
-      <ChatTitle
-        id={id!}
-        title={title}
-      />
+      <ChatTitle id={id!} title={title} />
 
       <ul className="flex-1 overflow-y-auto rounded space-y-4 mb-6 pr-1.5">
         {messages.map((msg) => (
           <li
-            key={msg._id}
-            className={cn(
-              "w-fit max-w-[75%] px-4 py-2.5 rounded shadow",
-              {
-                "bg-neutral-100 dark:bg-neutral-950 border border-transparent dark:border-neutral-600 ml-auto text-right text-neutral-900 dark:text-white": msg.sender === "user",
-                "bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-transparent mr-auto text-left text-neutral-900 dark:text-white": msg.sender === "ai",
-              }
-            )}
+            key={msg.id}
+            className={cn("w-fit max-w-[75%] px-4 py-2.5 rounded shadow", {
+              "bg-neutral-100 dark:bg-neutral-950 border border-transparent dark:border-neutral-600 ml-auto text-right text-neutral-900 dark:text-white":
+                msg.sender === "user",
+              "bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-transparent mr-auto text-left text-neutral-900 dark:text-white":
+                msg.sender === "ai",
+            })}
           >
             {msg.sender === "user" ? (
               <>
-                <strong>You:</strong> {msg.content}
+                <strong>You:</strong>{" "}
+                {typeof msg.content === "string"
+                  ? msg.content
+                  : JSON.stringify(msg.content)}
               </>
             ) : (
               <>
-                <strong>Gemini:</strong>
-                {msg.content === "form" ? (
+                <strong>{msg.sender}:</strong>
+                {msg.type === MessageType.Form ? (
                   <FormComponent />
                 ) : (
                   <ReactMarkdown
@@ -197,7 +204,7 @@ const Chat = () => {
                           <SyntaxHighlighter
                             PreTag="div"
                             language={match[1]}
-                            // @ts-ignore
+                            // @ts-expect-error React component type mismatch
                             style={atomDark}
                             {...rest}
                           >
@@ -241,7 +248,9 @@ const Chat = () => {
                       ),
                     }}
                   >
-                    {msg.content}
+                    {typeof msg.content === "string"
+                      ? msg.content
+                      : msg.message || ""}
                   </ReactMarkdown>
                 )}
               </>
@@ -252,7 +261,6 @@ const Chat = () => {
         {isThinking && (
           <span className="inline-flex items-end gap-2 bg-neutral-800 self-start px-5 py-1.5 rounded text-white animate-pulse">
             AI is Thinking
-
             <span className="size-1 bg-white rounded-full mb-1.5 animate-bounce" />
             <span className="size-1 bg-white rounded-full mb-1.5 animate-bounce delay-150" />
             <span className="size-1 bg-white rounded-full mb-1.5 animate-bounce delay-300" />

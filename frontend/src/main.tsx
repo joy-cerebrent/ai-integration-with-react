@@ -16,8 +16,7 @@ const queryClient = new QueryClient();
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <BrowserRouter>
-      <AuthProvider>
-        {/* <SocketProvider serverUrl="http://localhost:3000"> */}
+      <AuthProvider>        
         <QueryClientProvider client={queryClient}>
           <ThemeProvider
             attribute="class"
@@ -28,8 +27,7 @@ createRoot(document.getElementById("root")!).render(
             <App />
             <Toaster position="top-center" />
           </ThemeProvider>
-        </QueryClientProvider>
-        {/* </SocketProvider> */}
+        </QueryClientProvider>        
       </AuthProvider>
     </BrowserRouter>
   </StrictMode>,

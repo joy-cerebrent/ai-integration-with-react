@@ -14,4 +14,8 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  define: {
+    __APP_VERSION__: JSON.stringify('1.0.0'),
+    __API_BASE_URL__: JSON.stringify('https://localhost:7155'),
+  },
 });

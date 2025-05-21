@@ -40,7 +40,7 @@ const ChatTitle = ({ id, title }: ChatTitleProps) => {
 
       const token = localStorage.getItem('accessToken');
 
-      const res = await fetch(`http://localhost:3000/api/conversations/rename/${id}`, {
+      const res = await fetch(`${__API_BASE_URL__}/api/process/rename/${id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
