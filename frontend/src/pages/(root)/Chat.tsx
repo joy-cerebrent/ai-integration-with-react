@@ -21,6 +21,8 @@ import {
   type MessageSchemaType
 } from '@/validators/ConversationSchema';
 import FormComponent from '@/components/FormComponent';
+import ChartComponent from '@/components/ChartComponent';
+import AccordionComponent from '@/components/AccordionComponent';
 
 
 const Chat = () => {
@@ -187,6 +189,10 @@ const Chat = () => {
                 <strong>Gemini:</strong>
                 {msg.content === "form" ? (
                   <FormComponent />
+                ) : msg.content === "chart" ? (
+                  <ChartComponent />
+                ) : msg.content === "status" ? (
+                  <AccordionComponent />
                 ) : (
                   <ReactMarkdown
                     remarkPlugins={[remarkGfm]}

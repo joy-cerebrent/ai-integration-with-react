@@ -19,8 +19,16 @@ export const askGeminiFunc = async (question) => {
 export const askGemini = async (req, res) => {
   const { prompt } = req.body;
 
-  if(/\bform\b/i.test(prompt)){
+  if (/\bform\b/i.test(prompt)) {
     return res.status(200).json("form");
+  }
+
+  if (/\bcharts?\b/i.test(prompt)) {
+    return res.status(200).json("chart");
+  }
+
+  if (/\bstatus?\b/i.test(prompt)) {
+    return res.status(200).json("status");
   }
 
   const response = await askGeminiFunc(prompt);
