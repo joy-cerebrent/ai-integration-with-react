@@ -6,11 +6,72 @@ import { atomDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { cn } from "@/lib/utils";
 import { Message } from "@/types/Message";
 import { MessageType } from "@/enums/MessageType";
-import FormComponent from "@/components/FormComponent";
+import { ContentType } from "@/enums/ContentType";
+import { MessageStatus } from "@/enums/MessageStatus";
+import { Author } from "@/enums/Author";
+import { useAuth } from "@/context/AuthContext";
+import DynamicForm from "@/components/DynamicForm";
+import { toast } from "sonner";
+import type { FormMetadata } from "@/components/DynamicForm";
 
 const MessageItem: React.FC<{ msg: Message }> = ({ msg }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const { user } = useAuth();
 
+  const handleFormSubmit = async (data: Record<string, string | number | boolean>) => {
+    if (!user) {
+      toast.error("User not logged in");
+      return;
+    }
+
+    const requestCard = {
+      conversationId: msg.conversationId || undefined,
+      senderRole: Author.User,
+      senderId: user.id,
+      userId: user.id,
+      receiverRole: Author.System,
+    };
+
+    const formMessage: Message = {
+      conversationId: msg.conversationId || undefined,
+      type: MessageType.Answer,
+      contentType: ContentType.Json,
+      text: "Form submission",
+      content: data,
+      timestamp: new Date().toISOString(),
+      requestCard: requestCard,
+      sender: "user",
+      activities: [],
+      messageStatus: MessageStatus.Pending,
+    };
+
+    try {
+      const token = localStorage.getItem("accessToken");
+      const response = await fetch(`${__API_BASE_URL__}/api/conversation/input`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(formMessage),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to submit form");
+      }
+
+      const result = await response.json();
+      if (result.status === "error") {
+        toast.error(result.message);
+      } else {
+        toast.success("Form submitted successfully");
+      }
+    } catch (error) {
+      toast.error("Error submitting form");
+      console.error("Form submission error:", error);
+    }
+  };
+ 
   return (
     <li
       key={msg.id}
@@ -26,13 +87,16 @@ const MessageItem: React.FC<{ msg: Message }> = ({ msg }) => {
           <strong>You:</strong>{" "}
           {typeof msg.content === "string"
             ? msg.content
-            : msg.message || ""}
+            : msg.text || ""}
         </>
       ) : (
         <>
           <strong>{msg.sender}:</strong>
-          {msg.type === MessageType.Form ? (
-            <FormComponent />
+          {msg.type === MessageType.Question && msg.metadata ? (
+            <DynamicForm
+              metadata={msg.metadata as FormMetadata}
+              onSubmit={handleFormSubmit}
+            />
           ) : (
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
@@ -89,11 +153,11 @@ const MessageItem: React.FC<{ msg: Message }> = ({ msg }) => {
             >
               {typeof msg.content === "string"
                 ? msg.content
-                : msg.message || ""}
+                : msg.text || ""}
             </ReactMarkdown>
           )}
         </>
-      )}
+      )}     
 
       {/* Expander Panel for Activities */}
       {msg.activities && msg.activities.length > 0 && (
@@ -109,8 +173,7 @@ const MessageItem: React.FC<{ msg: Message }> = ({ msg }) => {
               {msg.activities.map((activity, index) => (
                 <li key={index} className="border-b border-neutral-200 dark:border-neutral-700 pb-1">
                   <div className="text-sm font-medium text-neutral-800 dark:text-neutral-200">
-                    <span className="block">Timestamp: {new Date(activity.timestamp).toLocaleString()}</span>
-                    <span className="block">Title: {activity.title || "N/A"}</span>
+                    <span className="block">Timestamp: {new Date(activity.timestamp).toLocaleString()}</span>                    
                     <span className="block">Message: {activity.message || "N/A"}</span>
                     {activity.content && (
                       <span className="block">Content: {JSON.stringify(activity.content)}</span>

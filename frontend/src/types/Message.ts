@@ -1,19 +1,20 @@
-import { Author } from "@/enums/Author"
 import { ContentType } from "@/enums/ContentType"
 import { MessageType } from "@/enums/MessageType"
 import { Activity } from "@/types/Activity"
 import { MessageStatus } from "@/enums/MessageStatus"
+import { RequestCard } from "./RequestCard";
 
 export interface Message {
-    id?: string | null
-    conversationId?: string | null
-    author: Author
-    type: MessageType
-    contentType: ContentType
-    message: string
-    content?: any
-    timestamp: string
-    activities: Activity[]
-    sender: string
-    status?: MessageStatus
+  id?: string | null;
+  conversationId?: string | null;
+  requestCard: RequestCard;
+  text: string;
+  content?: Record<string, unknown> | null;
+  contentType: ContentType;
+  metadata?: Record<string, unknown> | null;
+  type: MessageType;
+  timestamp: string; // ISO string representation of DateTime
+  messageStatus: MessageStatus;
+  activities?: Activity[];
+  sender: string;
 }

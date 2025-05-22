@@ -1,12 +1,6 @@
 export enum MessageType {
-  Chat,
-  DataUpdated,
-  CloseConnection,
-  Reply,
-  System,
+  Prompt,
   Question,
   Answer,
-  Notification,
   Response,
-  Form,
 }

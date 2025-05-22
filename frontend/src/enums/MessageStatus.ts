@@ -5,4 +5,5 @@ export enum MessageStatus {
   Failed,
   Success,
   Error,
+  Answered,
 }

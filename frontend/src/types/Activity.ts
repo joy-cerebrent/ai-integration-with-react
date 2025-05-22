@@ -1,14 +1,12 @@
-import { MessageStatus } from '@/enums/MessageStatus';
-import { RequestCard } from './RequestCard';
 import { ContentType } from '@/enums/ContentType';
+import { ActivityType } from "../enums/ActivityType";
 
 export interface Activity {
-    requestCard: RequestCard;
-    id: string;
-    timestamp: string; // ISO string representation of DateTime
-    title: string;
-    message: string;
-    content?: any;
-    contentType?: ContentType;
-    messageStatus: MessageStatus;
+  id: string;
+  messageId: string;
+  message: string;
+  content?: Record<string, unknown> | null;
+  contentType?: ContentType | null;
+  activityType: ActivityType;
+  timestamp: string; // ISO string representation of DateTime
 }

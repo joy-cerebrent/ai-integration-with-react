@@ -15,17 +15,20 @@ import { useSocket } from "@/context/SocketProvider";
 import { Author } from "@/enums/Author";
 import { ContentType } from "@/enums/ContentType";
 import { MessageType } from "@/enums/MessageType";
-import { MessageStatus } from "@/enums/MessageStatus";
+import { RequestCard } from "@/types/RequestCard";
 import { Message } from "@/types/Message";
 import { toast } from "sonner";
 import { fetchConversation, sendMessage } from "@/api/conversationApi";
 import useWebSocketHandler from "@/hooks/useWebSocketHandler";
 import MessageItem from "@/components/MessageItem";
 import ChatForm from "@/components/ChatForm";
+import { useAuth } from "@/context/AuthContext";
+import { MessageStatus } from "@/enums/MessageStatus";
 
 const Chat = () => {
   const { socket, connected } = useSocket();
   const { id } = useParams();
+  const { user } = useAuth();
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [title, setTitle] = useState<string>("");
@@ -55,17 +58,30 @@ const Chat = () => {
   useWebSocketHandler(socket, connected, messages, setMessages, setIsThinking);
 
   const onSubmit = async (data: MessageSchemaType) => {
+    if (!user) {
+      toast.error("User not logged in");
+      return;
+    }
+
+    const requestCard: RequestCard = {      
+      conversationId: id,
+      senderRole: Author.User,
+      senderId: user.id,
+      userId: user.id,      
+      receiverRole: Author.System, // Assuming the receiver is the system
+    };
+
     const userMessage: Message = {
       conversationId: id,
-      type: MessageType.Chat,
+      type: MessageType.Prompt, // Updated to use `MessageType.Prompt`
       contentType: ContentType.Text,
-      message: data.prompt,
+      text: data.prompt,
       content: null,
       timestamp: new Date().toISOString(),
-      status: MessageStatus.Pending,
-      author: Author.User,
+      requestCard: requestCard,
       sender: "user",
       activities: [],
+      messageStatus: MessageStatus.Pending,
     };
 
     setMessages((prev) => [...prev, userMessage]);
