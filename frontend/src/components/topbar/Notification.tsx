@@ -31,7 +31,7 @@ const NotificationMenu = () => {
     const fetchNotifications = async () => {
       try {
         const token = localStorage.getItem("accessToken");
-        const res = await fetch("http://localhost:3000/api/notification", {
+        const res = await fetch(`${__API_BASE_URL__}/api/notification`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -76,7 +76,7 @@ const NotificationMenu = () => {
   const handleMarkAsRead = async (notificationId: string) => {
     try {
       const token = localStorage.getItem("accessToken");
-      const res = await fetch(`http://localhost:3000/api/notification/setRead/${notificationId}`, {
+      const res = await fetch(`${__API_BASE_URL__}/api/notification/setRead/${notificationId}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -102,7 +102,7 @@ const NotificationMenu = () => {
   const handleDeleteNotification = async (notificationId: string) => {
     try {
       const token = localStorage.getItem("accessToken");
-      const res = await fetch(`http://localhost:3000/api/notification/delete/${notificationId}`, {
+      const res = await fetch(`${__API_BASE_URL__}/api/notification/delete/${notificationId}`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",

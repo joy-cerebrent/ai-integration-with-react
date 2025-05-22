@@ -1,3 +1,4 @@
+import { MessageStatus } from '@/enums/MessageStatus';
 import { RequestCard } from './RequestCard';
 import { ContentType } from '@/enums/ContentType';
 
@@ -9,4 +10,5 @@ export interface Activity {
     message: string;
     content?: any;
     contentType?: ContentType;
+    messageStatus: MessageStatus;
 }

@@ -16,6 +16,7 @@ export default defineConfig({
   },
   define: {
     __APP_VERSION__: JSON.stringify('1.0.0'),
-    __API_BASE_URL__: JSON.stringify('https://localhost:7155'),
+    __API_BASE_URL__: JSON.stringify('https://localhost:7223'),
+    __WEB_SOCKET_URL__: JSON.stringify('ws://localhost:5297'),
   },
 });

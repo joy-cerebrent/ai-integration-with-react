@@ -2,6 +2,7 @@ import { Author } from "@/enums/Author"
 import { ContentType } from "@/enums/ContentType"
 import { MessageType } from "@/enums/MessageType"
 import { Activity } from "@/types/Activity"
+import { MessageStatus } from "@/enums/MessageStatus"
 
 export interface Message {
     id?: string | null
@@ -14,4 +15,5 @@ export interface Message {
     timestamp: string
     activities: Activity[]
     sender: string
+    status?: MessageStatus
 }

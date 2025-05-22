@@ -22,7 +22,7 @@ interface AuthContextType {
   logout: () => void;
 }
 
-const API_URL = 'http://localhost:5109';
+const API_URL = __API_BASE_URL__;
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 

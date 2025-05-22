@@ -17,7 +17,7 @@ const Sidebar = () => {
     queryFn: async () => {
       const token = localStorage.getItem("accessToken");
 
-      const res = await fetch(`http://localhost:5109/api/Task/conversations`, {
+      const res = await fetch(`${__API_BASE_URL__}/api/conversation/list`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

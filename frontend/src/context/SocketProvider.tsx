@@ -31,7 +31,7 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
     
     const token = localStorage.getItem('accessToken');
     // Use ws:// for WebSocket connection (wss:// for secure connections)
-    const wsInstance = new WebSocket(`ws://localhost:5109/ws?access_token=${token}`);
+    const wsInstance = new WebSocket(`${__WEB_SOCKET_URL__}/ws?access_token=${token}`);
     
     wsInstance.onopen = () => {
       console.log("WebSocket connection established");

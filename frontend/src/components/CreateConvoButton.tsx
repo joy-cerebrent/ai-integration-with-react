@@ -25,7 +25,7 @@ const CreateConvoButton = ({
     mutationFn: async ({ userId }: { userId: string }) => {
       const token = localStorage.getItem("accessToken");
 
-      const response = await fetch(`${__API_BASE_URL__}/api/process/new`, {
+      const response = await fetch(`${__API_BASE_URL__}/api/conversation/new`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
