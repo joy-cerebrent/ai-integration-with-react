@@ -3,6 +3,7 @@ import { MessageType } from "@/enums/MessageType"
 import { Activity } from "@/types/Activity"
 import { MessageStatus } from "@/enums/MessageStatus"
 import { RequestCard } from "./RequestCard";
+import { FormMetadata } from "@/components/DynamicForm";
 
 export interface Message {
   id?: string | null;
@@ -11,7 +12,7 @@ export interface Message {
   text: string;
   content?: Record<string, unknown> | null;
   contentType: ContentType;
-  metadata?: Record<string, unknown> | null;
+  metadata?: FormMetadata;
   type: MessageType;
   timestamp: string; // ISO string representation of DateTime
   messageStatus: MessageStatus;

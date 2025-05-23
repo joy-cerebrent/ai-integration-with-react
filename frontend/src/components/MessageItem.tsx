@@ -10,27 +10,22 @@ import { ContentType } from "@/enums/ContentType";
 import { MessageStatus } from "@/enums/MessageStatus";
 import { Author } from "@/enums/Author";
 import { useAuth } from "@/context/AuthContext";
-import DynamicForm from "@/components/DynamicForm";
+import { DynamicForm, FormMetadata } from "@/components/DynamicForm";
 import { toast } from "sonner";
-import type { FormMetadata } from "@/components/DynamicForm";
+import { RequestCard } from "@/types/RequestCard";
+import JsonViewer from "./JsonViewer";
 
 const MessageItem: React.FC<{ msg: Message }> = ({ msg }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const { user } = useAuth();
 
-  const handleFormSubmit = async (data: Record<string, string | number | boolean>) => {
+  const handleFormSubmit = async (
+    data: Record<string, string | number | boolean>
+  ) => {
     if (!user) {
       toast.error("User not logged in");
       return;
     }
-
-    const requestCard = {
-      conversationId: msg.conversationId || undefined,
-      senderRole: Author.User,
-      senderId: user.id,
-      userId: user.id,
-      receiverRole: Author.System,
-    };
 
     const formMessage: Message = {
       conversationId: msg.conversationId || undefined,
@@ -39,7 +34,7 @@ const MessageItem: React.FC<{ msg: Message }> = ({ msg }) => {
       text: "Form submission",
       content: data,
       timestamp: new Date().toISOString(),
-      requestCard: requestCard,
+      requestCard: msg.requestCard,
       sender: "user",
       activities: [],
       messageStatus: MessageStatus.Pending,
@@ -47,14 +42,17 @@ const MessageItem: React.FC<{ msg: Message }> = ({ msg }) => {
 
     try {
       const token = localStorage.getItem("accessToken");
-      const response = await fetch(`${__API_BASE_URL__}/api/conversation/input`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(formMessage),
-      });
+      const response = await fetch(
+        `${__API_BASE_URL__}/api/conversation/input`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(formMessage),
+        }
+      );
 
       if (!response.ok) {
         throw new Error("Failed to submit form");
@@ -71,7 +69,7 @@ const MessageItem: React.FC<{ msg: Message }> = ({ msg }) => {
       console.error("Form submission error:", error);
     }
   };
- 
+
   return (
     <li
       key={msg.id}
@@ -85,103 +83,119 @@ const MessageItem: React.FC<{ msg: Message }> = ({ msg }) => {
       {msg.sender === "user" ? (
         <>
           <strong>You:</strong>{" "}
-          {typeof msg.content === "string"
-            ? msg.content
-            : msg.text || ""}
+          {typeof msg.content === "string" ? msg.content : msg.text || ""}
         </>
       ) : (
         <>
-          <strong>{msg.sender}:</strong>
-          {msg.type === MessageType.Question && msg.metadata ? (
-            <DynamicForm
-              metadata={msg.metadata as FormMetadata}
-              onSubmit={handleFormSubmit}
-            />
-          ) : (
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
-              components={{
-                code({ className, children, ...rest }) {
-                  const match = /language-(\w+)/.exec(className || "");
-                  return match ? (
-                    <SyntaxHighlighter
-                      PreTag="div"
-                      language={match[1]}
-                      // @ts-expect-error React component type mismatch
-                      style={atomDark}
-                      {...rest}
-                    >
-                      {String(children).trim()}
-                    </SyntaxHighlighter>
-                  ) : (
-                    <code {...rest} className={className}>
+          <strong>{msg.sender}:</strong>{" "}
+          <div className="mt-2">
+            {msg.type === MessageType.Question && msg.metadata ? (
+              <div className="mt-2">
+                <DynamicForm metadata={msg.metadata} onSubmit={handleFormSubmit} />
+              </div>
+            ) : msg.contentType === ContentType.Json && msg.content !== null ? (
+              <JsonViewer data={typeof msg.content === 'string' ? JSON.parse(msg.content) : msg.content} />
+            ) : (
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  code({ className, children, ...rest }) {
+                    const match = /language-(\w+)/.exec(className || "");
+                    return match ? (
+                      <SyntaxHighlighter
+                        PreTag="div"
+                        language={match[1]}
+                        // @ts-expect-error React component type mismatch
+                        style={atomDark}
+                        {...rest}
+                      >
+                        {String(children).trim()}
+                      </SyntaxHighlighter>
+                    ) : (
+                      <code {...rest} className={className}>
+                        {children}
+                      </code>
+                    );
+                  },
+                  table: ({ children }) => (
+                    <table className="w-full border my-4 border-neutral-300 dark:border-neutral-700 text-sm">
                       {children}
-                    </code>
-                  );
-                },
-                table: ({ children }) => (
-                  <table className="w-full border my-4 border-neutral-300 dark:border-neutral-700 text-sm">
-                    {children}
-                  </table>
-                ),
-                thead: ({ children }) => (
-                  <thead className="bg-neutral-200 dark:bg-neutral-800">
-                    {children}
-                  </thead>
-                ),
-                tbody: ({ children }) => (
-                  <tbody className="bg-white dark:bg-neutral-900">
-                    {children}
-                  </tbody>
-                ),
-                tr: ({ children }) => (
-                  <tr className="border-b border-neutral-300 dark:border-neutral-700">
-                    {children}
-                  </tr>
-                ),
-                th: ({ children }) => (
-                  <th className="px-4 py-2 text-left font-medium text-neutral-700 dark:text-neutral-200">
-                    {children}
-                  </th>
-                ),
-                td: ({ children }) => (
-                  <td className="px-4 py-2 text-neutral-600 dark:text-neutral-300">
-                    {children}
-                  </td>
-                ),
-              }}
-            >
-              {typeof msg.content === "string"
-                ? msg.content
-                : msg.text || ""}
-            </ReactMarkdown>
-          )}
+                    </table>
+                  ),
+                  thead: ({ children }) => (
+                    <thead className="bg-neutral-200 dark:bg-neutral-800">
+                      {children}
+                    </thead>
+                  ),
+                  tbody: ({ children }) => (
+                    <tbody className="bg-white dark:bg-neutral-900">
+                      {children}
+                    </tbody>
+                  ),
+                  tr: ({ children }) => (
+                    <tr className="border-b border-neutral-300 dark:border-neutral-700">
+                      {children}
+                    </tr>
+                  ),
+                  th: ({ children }) => (
+                    <th className="px-4 py-2 text-left font-medium text-neutral-700 dark:text-neutral-200">
+                      {children}
+                    </th>
+                  ),
+                  td: ({ children }) => (
+                    <td className="px-4 py-2 text-neutral-600 dark:text-neutral-300">
+                      {children}
+                    </td>
+                  ),
+                }}
+              >
+                {typeof msg.content === "string" ? msg.content : msg.text || ""}
+              </ReactMarkdown>
+            )}
+          </div>
         </>
-      )}     
-
-      {/* Expander Panel for Activities */}
+      )}      {/* Expander Panel for Activities */}
       {msg.activities && msg.activities.length > 0 && (
-        <div className="mt-2">
+        <div className="mt-3 border-t border-neutral-200 dark:border-neutral-700 pt-2">
           <button
-            className="text-sm text-blue-500 hover:underline"
+            className="text-xs font-medium text-blue-500 hover:text-blue-600 dark:hover:text-blue-400 flex items-center gap-1"
             onClick={() => setIsExpanded((prev) => !prev)}
           >
-            {isExpanded ? "Hide Activities" : "Show Activities"}
+            <svg
+              className={`h-4 w-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+            {msg.activities.length} {msg.activities.length === 1 ? 'Activity' : 'Activities'}
           </button>
           {isExpanded && (
-            <ul className="mt-2 space-y-1 text-sm text-neutral-700 dark:text-neutral-300">
+            <div className="mt-2 space-y-2">
               {msg.activities.map((activity, index) => (
-                <li key={index} className="border-b border-neutral-200 dark:border-neutral-700 pb-1">
-                  <div className="text-sm font-medium text-neutral-800 dark:text-neutral-200">
-                    <span className="block">Timestamp: {new Date(activity.timestamp).toLocaleString()}</span>                    
-                    <span className="block">Message: {activity.message || "N/A"}</span>
+                <div
+                  key={index}
+                  className="bg-neutral-50 dark:bg-neutral-900 rounded-md p-3 text-sm"
+                >
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-neutral-700 dark:text-neutral-300 flex-grow">
+                        {activity.message || "N/A"}
+                      </p>
+                      <span className="text-xs text-neutral-500 dark:text-neutral-400 whitespace-nowrap">
+                        {new Date(activity.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
                     {activity.content && (
-                      <span className="block">Content: {JSON.stringify(activity.content)}</span>
+                      <div className="mt-1">
+                        <JsonViewer data={activity.content} />
+                      </div>
                     )}
                   </div>
-                </li>
+                </div>
               ))}
-            </ul>
+            </div>
           )}
         </div>
       )}

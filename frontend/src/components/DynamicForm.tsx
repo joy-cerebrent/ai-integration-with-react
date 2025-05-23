@@ -1,13 +1,25 @@
-import { useForm, Controller } from "react-hook-form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
-import { Checkbox } from "./ui/checkbox"
+import React from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import type { ControllerRenderProps } from 'react-hook-form';
+import {
+  Form,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { buildZodSchema } from './validators/SchemaBuilder';
 
-interface FormField {
-  label: string;
+export interface FormMetadataField {
   name: string;
-  type: "text" | "number" | "select" | "checkbox";
+  label: string;
+  type: string;
   isRequired: boolean;
   placeholder?: string;
   options?: string[];
@@ -15,145 +27,150 @@ interface FormField {
 
 export interface FormMetadata {
   formTitle: string;
-  fields: FormField[];
+  fields: FormMetadataField[];
+}
+
+interface DynamicFormProps {
+  metadata: FormMetadata;
+  onSubmit: (data: Record<string, string | number | boolean>) => void;
 }
 
 type FormValues = Record<string, string | number | boolean>;
 
-interface DynamicFormProps {
-  metadata: FormMetadata;
-  onSubmit: (data: FormValues) => void;
-}
-
-const DynamicForm: React.FC<DynamicFormProps> = ({ metadata, onSubmit }) => {
-  const formSchema = z.object(
-    metadata.fields.reduce((acc, field) => {
-      let fieldSchema: z.ZodTypeAny;
-
-      switch (field.type) {
-        case "number":
-          fieldSchema = field.isRequired 
-            ? z.string()
-                .transform((val) => Number(val))
-                .pipe(z.number({ required_error: `${field.label} is required` }))
-            : z.string()
-                .transform((val) => val ? Number(val) : undefined)
-                .pipe(z.number().optional());
-          break;
-        case "checkbox":
-          // Transform the checkbox value to boolean
-          fieldSchema = field.isRequired
-            ? z.boolean({ required_error: `${field.label} is required` })
-            : z.boolean().optional().default(false);
-          break;
-        case "select":
-          fieldSchema = field.isRequired
-            ? z.string({ required_error: `${field.label} is required` })
-            : z.string().optional();
-          break;
-        case "text":
-          fieldSchema = field.isRequired
-            ? z.string({ required_error: `${field.label} is required` }).min(1, `${field.label} is required`)
-            : z.string().optional();
-          break;
-        default:
-          fieldSchema = z.string().optional();
-      }
-
-      acc[field.name] = fieldSchema;
+export const DynamicForm: React.FC<DynamicFormProps> = ({ metadata, onSubmit }) => {
+  // Create validation schema from metadata
+  const zodSchema = buildZodSchema({
+    schema: metadata.fields.reduce((acc, field) => {
+      acc[field.name] = {
+        type: field.type,
+        required: field.isRequired,
+        errorMessage: `${field.label} is required`,
+      };
       return acc;
-    }, {} as Record<string, z.ZodTypeAny>)
-  );
-
-  const {
-    register,
-    control,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
+    }, {} as Record<string, { type: string; required?: boolean; errorMessage?: string }>),
+    formTitle: metadata.formTitle,
   });
 
-  const handleFormSubmit = (data: FormValues) => {
-    onSubmit(data);
+  // Create the form
+  const form = useForm<FormValues>({
+    resolver: zodResolver(zodSchema),
+    defaultValues: metadata.fields.reduce((acc, field) => {
+      acc[field.name] = field.type === 'checkbox' ? false : '';
+      return acc;
+    }, {} as FormValues)
+  });
+
+  const renderInput = (
+    field: FormMetadataField,
+    formField: ControllerRenderProps<FormValues, string>
+  ) => {
+    const baseInputClasses = "w-full bg-neutral-50 dark:bg-neutral-900 border-neutral-200 dark:border-neutral-700 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-600 transition-colors";
+
+    switch (field.type) {
+      case 'select':
+        return (
+          <Select 
+            onValueChange={formField.onChange} 
+            value={formField.value as string}
+          >
+            <SelectTrigger className={baseInputClasses}>
+              <SelectValue placeholder={field.placeholder || `Select ${field.label}`} />
+            </SelectTrigger>
+            <SelectContent>
+              {field.options?.map(option => (
+                <SelectItem 
+                  key={option} 
+                  value={option}
+                  className="cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                >
+                  {option}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        );
+      
+      case 'checkbox':
+        return (
+          <div className="flex items-center gap-2">
+            <Checkbox
+              checked={formField.value as boolean}
+              onCheckedChange={formField.onChange}
+              className="data-[state=checked]:bg-blue-500 dark:data-[state=checked]:bg-blue-600"
+            />
+            <span className="text-sm text-neutral-600 dark:text-neutral-400">
+              {field.placeholder}
+            </span>
+          </div>
+        );
+
+      case 'number':
+        return (
+          <Input
+            {...formField}
+            type="number"
+            value={String(formField.value || '')}
+            placeholder={field.placeholder}
+            className={baseInputClasses}
+          />
+        );
+        
+      default:
+        return (
+          <Input
+            {...formField}
+            value={String(formField.value || '')}
+            placeholder={field.placeholder}
+            className={baseInputClasses}
+          />
+        );
+    }
   };
 
   return (
-    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
-      {metadata.formTitle && (
-        <h3 className="text-lg font-semibold mb-4">{metadata.formTitle}</h3>
-      )}
+    <div className="bg-white dark:bg-neutral-800 rounded-md p-4 shadow-sm border border-neutral-200 dark:border-neutral-700">
+      <div className="mb-4">
+        <h2 className="text-lg font-semibold text-neutral-800 dark:text-neutral-200">
+          {metadata.formTitle}
+        </h2>
+      </div>
       
-      {metadata.fields.map((field) => (
-        <div key={field.name} className="flex flex-col">
-          <label htmlFor={field.name} className="text-sm font-medium mb-1">
-            {field.label}
-            {field.isRequired && <span className="text-red-500 ml-1">*</span>}
-          </label>
-
-          {field.type === "select" && field.options ? (
-            <Controller
-              control={control}
-              name={field.name}
-              render={({ field: { onChange, value } }) => (
-                <Select 
-                  onValueChange={onChange} 
-                  value={value?.toString() || undefined}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={`Select ${field.label}`} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {field.options?.map((option) => (
-                      <SelectItem key={option} value={option}>
-                        {option}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            />
-          ) : field.type === "checkbox" ? (
-            <div className="flex items-center">
-              <Controller
-                control={control}
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <div className="grid gap-4">
+            {metadata.fields.map((field) => (
+              <FormField
+                key={field.name}
+                control={form.control}
                 name={field.name}
-                defaultValue={false}
-                render={({ field: { onChange, value } }) => (
-                  <Checkbox
-                    id={field.name}
-                    checked={Boolean(value)}
-                    onCheckedChange={onChange}
-                  />
+                render={({ field: formField }) => (
+                  <FormItem className="bg-neutral-50 dark:bg-neutral-900 p-3 rounded-md border border-neutral-200 dark:border-neutral-700">
+                    <FormLabel className="text-sm font-medium text-neutral-700 dark:text-neutral-300 flex items-center gap-1">
+                      {field.label}
+                      {field.isRequired && (
+                        <span className="text-red-500 text-xs">*</span>
+                      )}
+                    </FormLabel>
+                    <FormControl>
+                      {renderInput(field, formField)}
+                    </FormControl>
+                    <FormMessage className="text-xs text-red-500 mt-1" />
+                  </FormItem>
                 )}
               />
-            </div>
-          ) : (
-            <input
-              id={field.name}
-              type={field.type}
-              {...register(field.name)}
-              className="border rounded px-2 py-1 text-sm"
-              placeholder={field.placeholder}
-            />
-          )}
-
-          {errors[field.name] && (
-            <span className="text-red-500 text-xs mt-1">
-              {errors[field.name]?.message as string}
-            </span>
-          )}
-        </div>
-      ))}
-
-      <button
-        type="submit"
-        className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-      >
-        Submit
-      </button>
-    </form>
+            ))}
+          </div>
+            <div className="mt-4 flex justify-end">
+            <Button 
+              type="submit"
+              size="sm"
+              className="bg-blue-500 hover:bg-blue-600 text-white dark:bg-blue-600 dark:hover:bg-blue-700 transition-colors"
+            >
+              Submit
+            </Button>
+          </div>
+        </form>
+      </Form>
+    </div>
   );
 };
-
-export default DynamicForm;
