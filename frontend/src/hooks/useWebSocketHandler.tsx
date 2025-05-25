@@ -25,31 +25,20 @@ const useWebSocketHandler = (
       );
 
       // If no match by ID, try to find the most recent pending message
-      if (messageIndex === -1) {
+      if (messageIndex === -1 && socketMessage.type !== SocketContentType.Question) {
         messageIndex = prevMessages.findIndex(
-          (msg) => msg.messageStatus === MessageStatus.Pending
+          (msg) => msg.id === '-101'
         );
       }
 
       // If still no match, this might be a new message
-      if (messageIndex === -1 && socketMessage.type === SocketContentType.Question) {
-        // Create a new message for questions
-        const formMetadata = socketMessage.content ? validateFormMetadata(socketMessage.content as Record<string, unknown>) : undefined;
-        const newMessage: Message = {
-          id: socketMessage.requestCard?.conversationMessageId,
-          conversationId: socketMessage.requestCard?.conversationId,
-          type: MessageType.Question,
-          contentType: ContentType.Text,
-          text: socketMessage.message,
-          content: socketMessage.content,
-          timestamp: socketMessage.timestamp,
-          requestCard: socketMessage.requestCard,
-          sender: "ai",
-          activities: [],
-          messageStatus: MessageStatus.Pending,
-          metadata: formMetadata
-        };
-        return [...prevMessages, newMessage];
+      if (socketMessage.type === SocketContentType.Question && socketMessage.content) {
+        return [...prevMessages, socketMessage.content];
+      }
+
+      if(socketMessage.type === SocketContentType.Response && socketMessage.content) {
+        setIsThinking(false);
+        return [...prevMessages, socketMessage.content];
       }
 
       // If we still can't find a message to update, log error and return unchanged
@@ -115,18 +104,6 @@ const useWebSocketHandler = (
           break;
         }
 
-        case SocketContentType.Response: {
-          if (socketMessage.content) {
-            currentMessage.content = socketMessage.content;
-          }
-          if (socketMessage.message) {
-            currentMessage.text = socketMessage.message;
-          }
-          currentMessage.messageStatus = MessageStatus.Completed;
-          setIsThinking(false);
-          break;
-        }
-
         case SocketContentType.Alert: {
           // Add the alert as an activity
           const alertActivity: Activity = {
@@ -150,7 +127,6 @@ const useWebSocketHandler = (
           break;
         }
       }
-
       // Update the message in our messages array
       updatedMessages[messageIndex] = currentMessage;
       return updatedMessages;

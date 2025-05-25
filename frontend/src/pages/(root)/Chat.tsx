@@ -83,6 +83,7 @@ const Chat = () => {  const { id } = useParams();
     };
 
     const userMessage: Message = {
+      id: '-101',
       conversationId: id,
       type: MessageType.Prompt,
       contentType: ContentType.Text,

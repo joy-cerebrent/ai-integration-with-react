@@ -125,7 +125,7 @@ const ActivityItem = memo(({ activity }: { activity: Activity }) => (
 ActivityItem.displayName = "ActivityItem";
 
 const MessageItem: React.FC<{ msg: Message }> = ({ msg }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true);
   const { user } = useAuth();
 
   const handleFormSubmit = useCallback(async (
@@ -192,6 +192,10 @@ const MessageItem: React.FC<{ msg: Message }> = ({ msg }) => {
     }
     
     if (msg.contentType === ContentType.Json && msg.content !== null) {
+      if(msg.type === MessageType.Answer){
+        console.log("Rendering JSON content:", JSON.parse(msg.content));
+      }
+      
       return (
         <JsonViewer
           data={typeof msg.content === "string" ? JSON.parse(msg.content) : msg.content}

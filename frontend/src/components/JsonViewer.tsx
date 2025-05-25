@@ -12,14 +12,6 @@ const JsonViewer: React.FC<JsonViewerProps> = ({ data }) => {
     if (typeof value === "number")
       return <span className="text-blue-500">{value}</span>;
     if (typeof value === "string") {
-      const isDate = !isNaN(Date.parse(value));
-      if (isDate) {
-        return (
-          <span className="text-green-500">
-            {new Date(value).toLocaleString()}
-          </span>
-        );
-      }
       return <span className="text-green-500">"{value}"</span>;
     }
     if (Array.isArray(value)) {
