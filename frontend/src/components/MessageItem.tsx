@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, memo, useCallback } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
@@ -8,18 +8,127 @@ import { Message } from "@/types/Message";
 import { MessageType } from "@/enums/MessageType";
 import { ContentType } from "@/enums/ContentType";
 import { MessageStatus } from "@/enums/MessageStatus";
-import { Author } from "@/enums/Author";
 import { useAuth } from "@/context/AuthContext";
-import { DynamicForm, FormMetadata } from "@/components/DynamicForm";
+import { DynamicForm } from "@/components/DynamicForm";
 import { toast } from "sonner";
-import { RequestCard } from "@/types/RequestCard";
 import JsonViewer from "./JsonViewer";
+import { Activity } from "@/types/Activity";
+
+// Memoized markdown component
+const MarkdownContent = memo(({ content }: { content: string }) => (
+  <ReactMarkdown
+    remarkPlugins={[remarkGfm]}
+    components={{
+      code({ className, children, ...rest }) {
+        const match = /language-(\w+)/.exec(className || "");
+        return match ? (
+          <SyntaxHighlighter
+            PreTag="div"
+            language={match[1]}
+            // @ts-expect-error React component type mismatch with SyntaxHighlighter
+            style={atomDark}
+            {...rest}
+          >
+            {String(children).trim()}
+          </SyntaxHighlighter>
+        ) : (
+          <code {...rest} className={className}>
+            {children}
+          </code>
+        );
+      },
+      table: ({ children }) => (
+        <table className="w-full border my-4 border-neutral-300 dark:border-neutral-700 text-sm">
+          {children}
+        </table>
+      ),
+      thead: ({ children }) => (
+        <thead className="bg-neutral-200 dark:bg-neutral-800">{children}</thead>
+      ),
+      tbody: ({ children }) => (
+        <tbody className="bg-white dark:bg-neutral-900">{children}</tbody>
+      ),
+      tr: ({ children }) => (
+        <tr className="border-b border-neutral-300 dark:border-neutral-700">
+          {children}
+        </tr>
+      ),
+      th: ({ children }) => (
+        <th className="px-4 py-2 text-left font-medium text-neutral-700 dark:text-neutral-200">
+          {children}
+        </th>
+      ),
+      td: ({ children }) => (
+        <td className="px-4 py-2 text-neutral-600 dark:text-neutral-300">
+          {children}
+        </td>
+      ),
+    }}
+  >
+    {content}
+  </ReactMarkdown>
+));
+MarkdownContent.displayName = "MarkdownContent";
+
+// Memoized form component with better key handling
+const FormWrapper = memo(({ metadata, onSubmit, messageId }: { 
+  metadata: Message['metadata'], 
+  onSubmit: (data: Record<string, string | number | boolean>) => void,
+  messageId?: string | null 
+}) => {
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSubmit = useCallback(async (data: Record<string, string | number | boolean>) => {
+    setIsLoading(true);
+    try {
+      await onSubmit(data);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [onSubmit]);
+
+  if (!metadata) return null;
+  return (
+    <DynamicForm 
+      key={`form-${messageId}-${metadata.formTitle}`} 
+      metadata={metadata} 
+      onSubmit={handleSubmit}
+      isSubmitting={isLoading}
+    />
+  );
+});
+FormWrapper.displayName = "FormWrapper";
+
+// Memoized activity item component
+const ActivityItem = memo(({ activity }: { activity: Activity }) => (
+  <div className="bg-neutral-50 dark:bg-neutral-900 rounded-md p-3 text-sm">
+    <div className="flex flex-col gap-1">
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-neutral-700 dark:text-neutral-300 flex-grow">
+          {activity.message || "N/A"}
+        </p>
+        <span className="text-xs text-neutral-500 dark:text-neutral-400 whitespace-nowrap">
+          {new Date(activity.timestamp).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
+        </span>
+      </div>
+      {activity.content && (
+        <div className="mt-1">
+          <JsonViewer data={activity.content} />
+        </div>
+      )}
+    </div>
+  </div>
+));
+ActivityItem.displayName = "ActivityItem";
 
 const MessageItem: React.FC<{ msg: Message }> = ({ msg }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const { user } = useAuth();
 
-  const handleFormSubmit = async (
+  const handleFormSubmit = useCallback(async (
     data: Record<string, string | number | boolean>
   ) => {
     if (!user) {
@@ -60,7 +169,7 @@ const MessageItem: React.FC<{ msg: Message }> = ({ msg }) => {
 
       const result = await response.json();
       if (result.status === "error") {
-        toast.error(result.message);
+        toast.error(result.message || "Error submitting form");
       } else {
         toast.success("Form submitted successfully");
       }
@@ -68,11 +177,37 @@ const MessageItem: React.FC<{ msg: Message }> = ({ msg }) => {
       toast.error("Error submitting form");
       console.error("Form submission error:", error);
     }
+  }, [msg.conversationId, msg.requestCard, user]);
+
+  // Early return if message is null or undefined
+  if (!msg) return null;
+
+  // Determine if the message has activities
+  const activities = msg.activities || [];
+  const hasActivities = activities.length > 0;
+
+  const renderMessageContent = () => {
+    if (msg.type === MessageType.Question && msg.metadata) {
+      return <FormWrapper key={`form-${msg.id || msg.timestamp}`} metadata={msg.metadata} onSubmit={handleFormSubmit} messageId={msg.id || msg.timestamp} />;
+    }
+    
+    if (msg.contentType === ContentType.Json && msg.content !== null) {
+      return (
+        <JsonViewer
+          data={typeof msg.content === "string" ? JSON.parse(msg.content) : msg.content}
+        />
+      );
+    }
+
+    return (
+      <MarkdownContent
+        content={typeof msg.content === "string" ? msg.content : msg.text || ""}
+      />
+    );
   };
 
   return (
     <li
-      key={msg.id}
       className={cn("w-fit max-w-[75%] px-4 py-2.5 rounded shadow", {
         "bg-neutral-100 dark:bg-neutral-950 border border-transparent dark:border-neutral-600 ml-auto text-right text-neutral-900 dark:text-white":
           msg.sender === "user",
@@ -87,113 +222,40 @@ const MessageItem: React.FC<{ msg: Message }> = ({ msg }) => {
         </>
       ) : (
         <>
-          <strong>{msg.sender}:</strong>{" "}
-          <div className="mt-2">
-            {msg.type === MessageType.Question && msg.metadata ? (
-              <div className="mt-2">
-                <DynamicForm metadata={msg.metadata} onSubmit={handleFormSubmit} />
-              </div>
-            ) : msg.contentType === ContentType.Json && msg.content !== null ? (
-              <JsonViewer data={typeof msg.content === 'string' ? JSON.parse(msg.content) : msg.content} />
-            ) : (
-              <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
-                components={{
-                  code({ className, children, ...rest }) {
-                    const match = /language-(\w+)/.exec(className || "");
-                    return match ? (
-                      <SyntaxHighlighter
-                        PreTag="div"
-                        language={match[1]}
-                        // @ts-expect-error React component type mismatch
-                        style={atomDark}
-                        {...rest}
-                      >
-                        {String(children).trim()}
-                      </SyntaxHighlighter>
-                    ) : (
-                      <code {...rest} className={className}>
-                        {children}
-                      </code>
-                    );
-                  },
-                  table: ({ children }) => (
-                    <table className="w-full border my-4 border-neutral-300 dark:border-neutral-700 text-sm">
-                      {children}
-                    </table>
-                  ),
-                  thead: ({ children }) => (
-                    <thead className="bg-neutral-200 dark:bg-neutral-800">
-                      {children}
-                    </thead>
-                  ),
-                  tbody: ({ children }) => (
-                    <tbody className="bg-white dark:bg-neutral-900">
-                      {children}
-                    </tbody>
-                  ),
-                  tr: ({ children }) => (
-                    <tr className="border-b border-neutral-300 dark:border-neutral-700">
-                      {children}
-                    </tr>
-                  ),
-                  th: ({ children }) => (
-                    <th className="px-4 py-2 text-left font-medium text-neutral-700 dark:text-neutral-200">
-                      {children}
-                    </th>
-                  ),
-                  td: ({ children }) => (
-                    <td className="px-4 py-2 text-neutral-600 dark:text-neutral-300">
-                      {children}
-                    </td>
-                  ),
-                }}
-              >
-                {typeof msg.content === "string" ? msg.content : msg.text || ""}
-              </ReactMarkdown>
-            )}
+          <strong>{msg.sender}:</strong>
+          <div className="mt-2" key={`content-${msg.id || msg.timestamp}`}>
+            {renderMessageContent()}
           </div>
         </>
-      )}      {/* Expander Panel for Activities */}
-      {msg.activities && msg.activities.length > 0 && (
+      )}
+
+      {hasActivities && (
         <div className="mt-3 border-t border-neutral-200 dark:border-neutral-700 pt-2">
           <button
             className="text-xs font-medium text-blue-500 hover:text-blue-600 dark:hover:text-blue-400 flex items-center gap-1"
             onClick={() => setIsExpanded((prev) => !prev)}
           >
             <svg
-              className={`h-4 w-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+              className={cn("h-4 w-4 transition-transform", {
+                "rotate-180": isExpanded,
+              })}
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 9l-7 7-7-7"
+              />
             </svg>
-            {msg.activities.length} {msg.activities.length === 1 ? 'Activity' : 'Activities'}
+            {activities.length} {activities.length === 1 ? "Activity" : "Activities"}
           </button>
           {isExpanded && (
             <div className="mt-2 space-y-2">
-              {msg.activities.map((activity, index) => (
-                <div
-                  key={index}
-                  className="bg-neutral-50 dark:bg-neutral-900 rounded-md p-3 text-sm"
-                >
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="text-neutral-700 dark:text-neutral-300 flex-grow">
-                        {activity.message || "N/A"}
-                      </p>
-                      <span className="text-xs text-neutral-500 dark:text-neutral-400 whitespace-nowrap">
-                        {new Date(activity.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                    </div>
-                    {activity.content && (
-                      <div className="mt-1">
-                        <JsonViewer data={activity.content} />
-                      </div>
-                    )}
-                  </div>
-                </div>
+              {activities.map((activity, index) => (
+                <ActivityItem key={activity.id || index} activity={activity} />
               ))}
             </div>
           )}
@@ -203,4 +265,4 @@ const MessageItem: React.FC<{ msg: Message }> = ({ msg }) => {
   );
 };
 
-export default MessageItem;
+export default memo(MessageItem);

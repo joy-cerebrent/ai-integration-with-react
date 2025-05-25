@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { useAuth } from "./AuthContext";
+import { WebSocketMessage } from "@/types/WebSocketMessage";
 
 interface WebSocketContextType {
   socket: WebSocket | null;
@@ -7,10 +8,10 @@ interface WebSocketContextType {
   connected: boolean;
 }
 
-const WebSocketContext = createContext<WebSocketContextType>({
+export const WebSocketContext = createContext<WebSocketContextType>({
   socket: null,
   sendMessage: () => {},
-  connected: false
+  connected: false,
 });
 
 export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
@@ -30,29 +31,31 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
     if (!user || !user.id) return;
     
     const token = localStorage.getItem('accessToken');
-    // Use ws:// for WebSocket connection (wss:// for secure connections)
     const wsInstance = new WebSocket(`${__WEB_SOCKET_URL__}/ws?access_token=${token}`);
     
     wsInstance.onopen = () => {
-      console.log("WebSocket connection established");
+      console.log("🔗 WebSocket connection established");
       setConnected(true);
     };
     
     wsInstance.onclose = (event) => {
-      console.log("WebSocket connection closed", event);
+      console.log("❌ WebSocket connection closed", event);
       setConnected(false);
     };
     
     wsInstance.onerror = (error) => {
-      console.error("WebSocket error:", error);
+      console.error("⚠️ WebSocket error:", error);
       setConnected(false);
     };
     
     wsInstance.onmessage = (event) => {
       try {
-        // You can process incoming messages here
-        const data = JSON.parse(event.data);
-        console.log("Message received:", data);
+        const message = JSON.parse(event.data) as WebSocketMessage;
+        // Forward the parsed message directly to any listeners
+        const customEvent = new CustomEvent('websocketMessage', { 
+          detail: message 
+        });
+        window.dispatchEvent(customEvent);
       } catch (error) {
         console.error("Error parsing WebSocket message:", error);
       }
@@ -70,7 +73,7 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
   const contextValue = {
     socket,
     sendMessage,
-    connected
+    connected,
   };
 
   return (
@@ -81,3 +84,21 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
 };
 
 export const useSocket = () => useContext(WebSocketContext);
+
+// Helper hook to subscribe to WebSocket messages
+export const useWebSocketMessages = (
+  callback: (message: WebSocketMessage) => void
+) => {
+  useEffect(() => {
+    const handleWebSocketMessage = (event: Event) => {
+      const customEvent = event as CustomEvent<WebSocketMessage>;
+      callback(customEvent.detail);
+    };
+
+    window.addEventListener('websocketMessage', handleWebSocketMessage);
+
+    return () => {
+      window.removeEventListener('websocketMessage', handleWebSocketMessage);
+    };
+  }, [callback]);
+};

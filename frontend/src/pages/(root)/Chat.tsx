@@ -1,33 +1,29 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { useQuery } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
 
 import ChatTitle from "@/components/ChatTitle";
+import ChatForm from "@/components/ChatForm";
+import MessageItem from "@/components/MessageItem";
 
 import { useTitle } from "@/hooks/useTitle";
-import {
-  MessageSchema,
-  type MessageSchemaType,
-} from "@/validators/ConversationSchema";
-import { useSocket } from "@/context/SocketProvider";
+import useWebSocketHandler from "@/hooks/useWebSocketHandler";
+import { useAuth } from "@/context/AuthContext";
+
+import { MessageSchema, type MessageSchemaType } from "@/validators/ConversationSchema";
 import { Author } from "@/enums/Author";
 import { ContentType } from "@/enums/ContentType";
 import { MessageType } from "@/enums/MessageType";
-import { RequestCard } from "@/types/RequestCard";
-import { Message } from "@/types/Message";
-import { toast } from "sonner";
-import { fetchConversation, sendMessage } from "@/api/conversationApi";
-import useWebSocketHandler from "@/hooks/useWebSocketHandler";
-import MessageItem from "@/components/MessageItem";
-import ChatForm from "@/components/ChatForm";
-import { useAuth } from "@/context/AuthContext";
 import { MessageStatus } from "@/enums/MessageStatus";
+import type { RequestCard } from "@/types/RequestCard";
+import type { Message } from "@/types/Message";
 
-const Chat = () => {
-  const { socket, connected } = useSocket();
-  const { id } = useParams();
+import { fetchConversation, sendMessage } from "@/api/conversationApi";
+
+const Chat = () => {  const { id } = useParams();
   const { user } = useAuth();
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -35,31 +31,46 @@ const Chat = () => {
   const [isThinking, setIsThinking] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Auto-scroll effect
+  useEffect(() => {
+    if (bottomRef.current) {
+      const behavior = messages.length <= 1 ? 'auto' : 'smooth';
+      bottomRef.current.scrollIntoView({ behavior });
+    }
+  }, [messages, isThinking]);
+
   const {
     reset,
     setValue,
-    formState: { errors, isSubmitting },
+    formState: { errors: formErrors, isSubmitting },
   } = useForm<MessageSchemaType>({
     resolver: zodResolver(MessageSchema),
   });
 
   useTitle(title);
 
-  const { isLoading, isError } = useQuery({
+  const { isLoading, isError: queryError } = useQuery({
     queryKey: ["conversation", id],
     queryFn: async () => {
+      if (!id) throw new Error("No conversation ID provided");
       const data = await fetchConversation(id);
       setTitle(data.title || "Conversation");
       setMessages(data.messages || []);
       return data;
     },
+    enabled: !!id,
   });
 
-  useWebSocketHandler(socket, connected, messages, setMessages, setIsThinking);
+  useWebSocketHandler(messages, setMessages, setIsThinking);
 
   const onSubmit = async (data: MessageSchemaType) => {
     if (!user) {
       toast.error("User not logged in");
+      return;
+    }
+
+    if (!id) {
+      toast.error("No conversation ID");
       return;
     }
 
@@ -68,12 +79,12 @@ const Chat = () => {
       senderRole: Author.User,
       senderId: user.id,
       userId: user.id,      
-      receiverRole: Author.System, // Assuming the receiver is the system
+      receiverRole: Author.System,
     };
 
     const userMessage: Message = {
       conversationId: id,
-      type: MessageType.Prompt, // Updated to use `MessageType.Prompt`
+      type: MessageType.Prompt,
       contentType: ContentType.Text,
       text: data.prompt,
       content: null,
@@ -84,39 +95,49 @@ const Chat = () => {
       messageStatus: MessageStatus.Pending,
     };
 
-    setMessages((prev) => [...prev, userMessage]);
+    setMessages(prev => [...prev, userMessage]);
     reset();
-
     setIsThinking(true);
 
     try {
       const responseData = await sendMessage(userMessage);
       if (responseData.status === "error") {
-        toast.error(responseData.message);
+        toast.error(responseData.message || "Error sending message");
+        setIsThinking(false);
       } else if (responseData.status) {
-        toast.success(responseData.message);
+        toast.success(responseData.message || "Message sent");
       }
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError("An unknown error occurred");
-      }
-    } finally {
-      // setIsThinking(false)
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "An unknown error occurred";
+      setError(errorMessage);
+      toast.error(errorMessage);
+      setIsThinking(false);
     }
   };
 
-  if (isLoading) return <div>Loading...</div>;
-  if (isError && error) return <div>Error: {error}</div>;
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="animate-pulse">Loading conversation...</div>
+      </div>
+    );
+  }
+
+  if (queryError && error) {
+    return (
+      <div className="flex h-screen items-center justify-center text-red-500">
+        Error: {error}
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen flex-col p-6 pt-24 w-full bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100">
       <ChatTitle id={id!} title={title} />
 
-      <ul className="flex-1 overflow-y-auto rounded space-y-4 mb-6 pr-1.5">
+      <div className="flex-1 overflow-y-auto rounded space-y-4 mb-6 pr-1.5">
         {messages.map((msg) => (
-          <MessageItem key={msg.id} msg={msg} />
+          <MessageItem key={msg.id || msg.timestamp} msg={msg} />
         ))}
 
         {isThinking && (
@@ -129,13 +150,13 @@ const Chat = () => {
         )}
 
         <div ref={bottomRef} />
-      </ul>
+      </div>
 
       <ChatForm
         onSubmit={onSubmit}
         isSubmitting={isSubmitting}
         setValue={setValue}
-        errors={errors}
+        errors={formErrors}
       />
     </div>
   );

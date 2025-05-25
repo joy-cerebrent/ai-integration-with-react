@@ -33,11 +33,12 @@ export interface FormMetadata {
 interface DynamicFormProps {
   metadata: FormMetadata;
   onSubmit: (data: Record<string, string | number | boolean>) => void;
+  isSubmitting?: boolean;
 }
 
 type FormValues = Record<string, string | number | boolean>;
 
-export const DynamicForm: React.FC<DynamicFormProps> = ({ metadata, onSubmit }) => {
+export const DynamicForm: React.FC<DynamicFormProps> = ({ metadata, onSubmit, isSubmitting = false }) => {
   // Create validation schema from metadata
   const zodSchema = buildZodSchema({
     schema: metadata.fields.reduce((acc, field) => {
@@ -164,9 +165,10 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({ metadata, onSubmit }) 
             <Button 
               type="submit"
               size="sm"
+              disabled={isSubmitting}
               className="bg-blue-500 hover:bg-blue-600 text-white dark:bg-blue-600 dark:hover:bg-blue-700 transition-colors"
             >
-              Submit
+              {isSubmitting ? "Submitting..." : "Submit"}
             </Button>
           </div>
         </form>
