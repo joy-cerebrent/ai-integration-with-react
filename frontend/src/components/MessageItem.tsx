@@ -15,6 +15,38 @@ import JsonViewer from "./JsonViewer";
 import DataTable from "./DataTable";
 import { Activity } from "@/types/Activity";
 
+
+// Helper function to format message timestamps
+const formatMessageTime = (timestamp: string) => {
+  try {
+    const date = new Date(timestamp);
+    if (isNaN(date.getTime())) {
+      return ''; // Return empty string for invalid dates
+    }
+    return date.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch (error) {
+    console.error('Error formatting timestamp:', error);
+    return '';
+  }
+};
+
+// Helper function to process JSON values
+const processJsonValue = (value: unknown): Record<string, unknown> | unknown[] | unknown => {
+  if (typeof value === 'string' && value.trim().startsWith('[') && value.trim().endsWith(']')) {
+    try {
+      return JSON.parse(value);
+    } catch (e) {
+      console.error('Failed to parse array string:', e);
+      return value;
+    }
+  }
+  return value;
+};
+
+
 // Memoized markdown component
 const MarkdownContent = memo(({ content }: { content: string }) => (
   <ReactMarkdown
@@ -109,15 +141,18 @@ const ActivityItem = memo(({ activity }: { activity: Activity }) => (
           {activity.message || "N/A"}
         </p>
         <span className="text-xs text-neutral-500 dark:text-neutral-400 whitespace-nowrap">
-          {new Date(activity.timestamp).toLocaleTimeString([], {
+          {/* {new Date(activity.timestamp).toLocaleTimeString([], {
             hour: "2-digit",
             minute: "2-digit",
-          })}
+          })} */}
+          {formatMessageTime(activity.timestamp)}
         </span>
-      </div>
-      {activity.content && (
+      </div>      {activity.content && (
         <div className="mt-1">
-          <JsonViewer data={activity.content} />
+          {Array.isArray(activity.content) 
+            ? <DataTable data={activity.content} />
+            : <JsonViewer data={activity.content} />
+          }
         </div>
       )}
     </div>
@@ -190,16 +225,55 @@ const MessageItem: React.FC<{ msg: Message }> = ({ msg }) => {
   const renderMessageContent = () => {
     if (msg.type === MessageType.Question && msg.metadata) {      
       return <FormWrapper key={`form-${msg.id || msg.timestamp}`} metadata={msg.metadata} onSubmit={handleFormSubmit} messageId={msg.id || msg.timestamp} />;
-    }
-      if (msg.contentType === ContentType.Json && msg.content !== null) {
-      const content = typeof msg.content === "string" ? JSON.parse(msg.content) : msg.content;
+    }    if (msg.contentType === ContentType.Json && msg.content !== null) {
+      let content = typeof msg.content === "string" ? JSON.parse(msg.content) : msg.content;
       
-      // If content is an array, use DataTable
+      // Handle nested array case - the data might be wrapped in multiple arrays
+      if (Array.isArray(content) && content.length === 1 && Array.isArray(content[0])) {
+        content = content[0];
+      }
+
+      // If the content has labeled sections
+      if (typeof content === 'object' && !Array.isArray(content)) {
+        return (
+          <div className="space-y-6">
+            {Object.entries(content).map(([key, value]) => {
+              // Parse the value if it's a string that looks like an array
+              let processedValue = value;
+              if (typeof value === 'string' && value.trim().startsWith('[') && value.trim().endsWith(']')) {
+                try {
+                  processedValue = JSON.parse(value);
+                } catch (e) {
+                  console.error('Failed to parse array string:', e);
+                }
+              }
+
+              return (
+                <div key={key} className="space-y-2">
+                  <h3 className="text-sm font-medium text-neutral-700 dark:text-neutral-300 capitalize">
+                    {key.replace(/_/g, ' ')}:
+                  </h3>
+                  {Array.isArray(processedValue) && processedValue.length > 0 && 
+                    // If items are objects with name/description, use table
+                    typeof processedValue[0] === 'object' && processedValue[0] !== null ? (
+                      <DataTable data={processedValue} />
+                    ) : (
+                      <JsonViewer data={processedValue} />
+                    )
+                  }
+                </div>
+              );
+            })}
+          </div>
+        );
+      }
+      
+      // For array data, use DataTable
       if (Array.isArray(content)) {
         return <DataTable data={content} />;
       }
       
-      // For non-array JSON data, use JsonViewer
+      // For other JSON data, use JsonViewer
       return <JsonViewer data={content} />;
     }
 
@@ -222,10 +296,11 @@ const MessageItem: React.FC<{ msg: Message }> = ({ msg }) => {
           <div className="flex items-center justify-between gap-2 mb-1">
             <span className="text-xs text-indigo-700 dark:text-indigo-200 font-medium">You</span>
             <span className="text-xs text-indigo-600/75 dark:text-indigo-300/75">
-              {new Date(msg.timestamp).toLocaleTimeString([], {
+              {/* {new Date(msg.timestamp).toLocaleTimeString([], {
                 hour: "2-digit",
                 minute: "2-digit",
-              })}
+              })} */}
+              {formatMessageTime(msg.timestamp)}
             </span>
           </div>
           <div className="text-indigo-900 dark:text-indigo-50">
@@ -237,10 +312,11 @@ const MessageItem: React.FC<{ msg: Message }> = ({ msg }) => {
           <div className="flex items-center gap-2 mb-2">
             <span className="font-medium text-sm text-neutral-700 dark:text-neutral-200">AI Assistant</span>
             <span className="text-xs text-neutral-500 dark:text-neutral-400">
-              {new Date(msg.timestamp).toLocaleTimeString([], {
+              {/* {new Date(msg.timestamp).toLocaleTimeString([], {
                 hour: "2-digit",
                 minute: "2-digit",
-              })}
+              })} */}
+              {formatMessageTime(msg.timestamp)}
             </span>
           </div>
           <div className="mt-1" key={`content-${msg.id || msg.timestamp}`}>
