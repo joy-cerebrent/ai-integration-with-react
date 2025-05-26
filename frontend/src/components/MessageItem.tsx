@@ -14,38 +14,25 @@ import { toast } from "sonner";
 import JsonViewer from "./JsonViewer";
 import DataTable from "./DataTable";
 import { Activity } from "@/types/Activity";
-
+import ChartComponent from "./ChartComponent";
 
 // Helper function to format message timestamps
 const formatMessageTime = (timestamp: string) => {
   try {
     const date = new Date(timestamp);
+    console.log("Formatted date:", date, timestamp);
     if (isNaN(date.getTime())) {
-      return ''; // Return empty string for invalid dates
+      return ""; // Return empty string for invalid dates
     }
     return date.toLocaleTimeString([], {
       hour: "2-digit",
       minute: "2-digit",
     });
   } catch (error) {
-    console.error('Error formatting timestamp:', error);
-    return '';
+    console.error("Error formatting timestamp:", error);
+    return "";
   }
 };
-
-// Helper function to process JSON values
-const processJsonValue = (value: unknown): Record<string, unknown> | unknown[] | unknown => {
-  if (typeof value === 'string' && value.trim().startsWith('[') && value.trim().endsWith(']')) {
-    try {
-      return JSON.parse(value);
-    } catch (e) {
-      console.error('Failed to parse array string:', e);
-      return value;
-    }
-  }
-  return value;
-};
-
 
 // Memoized markdown component
 const MarkdownContent = memo(({ content }: { content: string }) => (
@@ -104,32 +91,41 @@ const MarkdownContent = memo(({ content }: { content: string }) => (
 MarkdownContent.displayName = "MarkdownContent";
 
 // Memoized form component with better key handling
-const FormWrapper = memo(({ metadata, onSubmit, messageId }: { 
-  metadata: Message['metadata'], 
-  onSubmit: (data: Record<string, string | number | boolean>) => void,
-  messageId?: string | null 
-}) => {
-  const [isLoading, setIsLoading] = useState(false);
+const FormWrapper = memo(
+  ({
+    metadata,
+    onSubmit,
+    messageId,
+  }: {
+    metadata: Message["metadata"];
+    onSubmit: (data: Record<string, string | number | boolean>) => void;
+    messageId?: string | null;
+  }) => {
+    const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = useCallback(async (data: Record<string, string | number | boolean>) => {
-    setIsLoading(true);
-    try {
-      await onSubmit(data);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [onSubmit]);
+    const handleSubmit = useCallback(
+      async (data: Record<string, string | number | boolean>) => {
+        setIsLoading(true);
+        try {
+          await onSubmit(data);
+        } finally {
+          setIsLoading(false);
+        }
+      },
+      [onSubmit]
+    );
 
-  if (!metadata) return null;
-  return (
-    <DynamicForm 
-      key={`form-${messageId}-${metadata.formTitle}`} 
-      metadata={metadata} 
-      onSubmit={handleSubmit}
-      isSubmitting={isLoading}
-    />
-  );
-});
+    if (!metadata) return null;
+    return (
+      <DynamicForm
+        key={`form-${messageId}-${metadata.formTitle}`}
+        metadata={metadata}
+        onSubmit={handleSubmit}
+        isSubmitting={isLoading}
+      />
+    );
+  }
+);
 FormWrapper.displayName = "FormWrapper";
 
 // Memoized activity item component
@@ -141,18 +137,16 @@ const ActivityItem = memo(({ activity }: { activity: Activity }) => (
           {activity.message || "N/A"}
         </p>
         <span className="text-xs text-neutral-500 dark:text-neutral-400 whitespace-nowrap">
-          {/* {new Date(activity.timestamp).toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-          })} */}
           {formatMessageTime(activity.timestamp)}
         </span>
-      </div>      {activity.content && (
+      </div>{" "}
+      {activity.content && (
         <div className="mt-1">
-          {Array.isArray(activity.content) 
-            ? <DataTable data={activity.content} />
-            : <JsonViewer data={activity.content} />
-          }
+          {Array.isArray(activity.content) ? (
+            <DataTable data={activity.content} />
+          ) : (
+            <JsonViewer data={activity.content} />
+          )}
         </div>
       )}
     </div>
@@ -164,56 +158,57 @@ const MessageItem: React.FC<{ msg: Message }> = ({ msg }) => {
   const [isExpanded, setIsExpanded] = useState(true);
   const { user } = useAuth();
 
-  const handleFormSubmit = useCallback(async (
-    data: Record<string, string | number | boolean>
-  ) => {
-    if (!user) {
-      toast.error("User not logged in");
-      return;
-    }
+  const handleFormSubmit = useCallback(
+    async (data: Record<string, string | number | boolean>) => {
+      if (!user) {
+        toast.error("User not logged in");
+        return;
+      }
 
-    const formMessage: Message = {
-      conversationId: msg.conversationId || undefined,
-      type: MessageType.Answer,
-      contentType: ContentType.Json,
-      text: "Form submission",
-      content: data,
-      timestamp: new Date().toISOString(),
-      requestCard: msg.requestCard,
-      sender: "user",
-      activities: [],
-      messageStatus: MessageStatus.Pending,
-    };
+      const formMessage: Message = {
+        conversationId: msg.conversationId || undefined,
+        type: MessageType.Answer,
+        contentType: ContentType.Json,
+        text: "Form submission",
+        content: data,
+        timestamp: new Date().toISOString(),
+        requestCard: msg.requestCard,
+        sender: "user",
+        activities: [],
+        messageStatus: MessageStatus.Pending,
+      };
 
-    try {
-      const token = localStorage.getItem("accessToken");
-      const response = await fetch(
-        `${__API_BASE_URL__}/api/conversation/input`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(formMessage),
+      try {
+        const token = localStorage.getItem("accessToken");
+        const response = await fetch(
+          `${__API_BASE_URL__}/api/conversation/input`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(formMessage),
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error("Failed to submit form");
         }
-      );
 
-      if (!response.ok) {
-        throw new Error("Failed to submit form");
+        const result = await response.json();
+        if (result.status === "error") {
+          toast.error(result.message || "Error submitting form");
+        } else {
+          toast.success("Form submitted successfully");
+        }
+      } catch (error) {
+        toast.error("Error submitting form");
+        console.error("Form submission error:", error);
       }
-
-      const result = await response.json();
-      if (result.status === "error") {
-        toast.error(result.message || "Error submitting form");
-      } else {
-        toast.success("Form submitted successfully");
-      }
-    } catch (error) {
-      toast.error("Error submitting form");
-      console.error("Form submission error:", error);
-    }
-  }, [msg.conversationId, msg.requestCard, user]);
+    },
+    [msg.conversationId, msg.requestCard, user]
+  );
 
   // Early return if message is null or undefined
   if (!msg) return null;
@@ -223,56 +218,74 @@ const MessageItem: React.FC<{ msg: Message }> = ({ msg }) => {
   const hasActivities = activities.length > 0;
 
   const renderMessageContent = () => {
-    if (msg.type === MessageType.Question && msg.metadata) {      
-      return <FormWrapper key={`form-${msg.id || msg.timestamp}`} metadata={msg.metadata} onSubmit={handleFormSubmit} messageId={msg.id || msg.timestamp} />;
-    }    if (msg.contentType === ContentType.Json && msg.content !== null) {
-      let content = typeof msg.content === "string" ? JSON.parse(msg.content) : msg.content;
-      
+    if (msg.type === MessageType.Question && msg.metadata) {
+      return (
+        <FormWrapper
+          key={`form-${msg.id || msg.timestamp}`}
+          metadata={msg.metadata}
+          onSubmit={handleFormSubmit}
+          messageId={msg.id || msg.timestamp}
+        />
+      );
+    }
+    if (msg.contentType === ContentType.Json && msg.content !== null) {
+      let content =
+        typeof msg.content === "string" ? JSON.parse(msg.content) : msg.content;
+
       // Handle nested array case - the data might be wrapped in multiple arrays
-      if (Array.isArray(content) && content.length === 1 && Array.isArray(content[0])) {
+      if (
+        Array.isArray(content) &&
+        content.length === 1 &&
+        Array.isArray(content[0])
+      ) {
         content = content[0];
       }
 
       // If the content has labeled sections
-      if (typeof content === 'object' && !Array.isArray(content)) {
+      if (typeof content === "object" && !Array.isArray(content)) {
         return (
           <div className="space-y-6">
             {Object.entries(content).map(([key, value]) => {
               // Parse the value if it's a string that looks like an array
               let processedValue = value;
-              if (typeof value === 'string' && value.trim().startsWith('[') && value.trim().endsWith(']')) {
+              if (
+                typeof value === "string" &&
+                value.trim().startsWith("[") &&
+                value.trim().endsWith("]")
+              ) {
                 try {
                   processedValue = JSON.parse(value);
                 } catch (e) {
-                  console.error('Failed to parse array string:', e);
+                  console.error("Failed to parse array string:", e);
                 }
               }
 
               return (
                 <div key={key} className="space-y-2">
                   <h3 className="text-sm font-medium text-neutral-700 dark:text-neutral-300 capitalize">
-                    {key.replace(/_/g, ' ')}:
+                    {key.replace(/_/g, " ")}:
                   </h3>
-                  {Array.isArray(processedValue) && processedValue.length > 0 && 
-                    // If items are objects with name/description, use table
-                    typeof processedValue[0] === 'object' && processedValue[0] !== null ? (
-                      <DataTable data={processedValue} />
-                    ) : (
-                      <JsonViewer data={processedValue} />
-                    )
-                  }
+                  {Array.isArray(processedValue) &&
+                  processedValue.length > 0 &&
+                  // If items are objects with name/description, use table
+                  typeof processedValue[0] === "object" &&
+                  processedValue[0] !== null ? (
+                    <DataTable data={processedValue} />
+                  ) : (
+                    <JsonViewer data={processedValue} />
+                  )}
                 </div>
               );
             })}
           </div>
         );
       }
-      
+
       // For array data, use DataTable
       if (Array.isArray(content)) {
         return <DataTable data={content} />;
       }
-      
+
       // For other JSON data, use JsonViewer
       return <JsonViewer data={content} />;
     }
@@ -282,24 +295,26 @@ const MessageItem: React.FC<{ msg: Message }> = ({ msg }) => {
         content={typeof msg.content === "string" ? msg.content : msg.text || ""}
       />
     );
-  };  return (
+  };
+  return (
     <li
-      className={cn("w-fit max-w-[75%] rounded-2xl shadow-sm transition-all", {
-        "bg-indigo-100 dark:bg-indigo-900 ml-auto p-3":
-          msg.sender === "user",
-        "bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-transparent mr-auto p-4":
-          msg.sender === "ai",
-      })}
+      className={cn(
+        "w-fit max-w-[75%] rounded-2xl shadow-sm transition-all list-none",
+        {
+          "bg-indigo-100 dark:bg-indigo-900 ml-auto p-3": msg.sender === "user",
+          "bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-transparent mr-auto p-4":
+            msg.sender === "ai",
+        }
+      )}
     >
+      {" "}
       {msg.sender === "user" ? (
         <div className="flex flex-col">
-          <div className="flex items-center justify-between gap-2 mb-1">
-            <span className="text-xs text-indigo-700 dark:text-indigo-200 font-medium">You</span>
+          <div className="flex items-center space-x-2 mb-1">
+            <span className="text-xs text-indigo-700 dark:text-indigo-200 font-medium">
+              You
+            </span>
             <span className="text-xs text-indigo-600/75 dark:text-indigo-300/75">
-              {/* {new Date(msg.timestamp).toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-              })} */}
               {formatMessageTime(msg.timestamp)}
             </span>
           </div>
@@ -309,22 +324,20 @@ const MessageItem: React.FC<{ msg: Message }> = ({ msg }) => {
         </div>
       ) : (
         <>
-          <div className="flex items-center gap-2 mb-2">
-            <span className="font-medium text-sm text-neutral-700 dark:text-neutral-200">AI Assistant</span>
+          <div className="flex items-center space-x-2 mb-2">
+            <span className="font-medium text-sm text-neutral-700 dark:text-neutral-200">
+              AI Assistant
+            </span>
             <span className="text-xs text-neutral-500 dark:text-neutral-400">
-              {/* {new Date(msg.timestamp).toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-              })} */}
               {formatMessageTime(msg.timestamp)}
             </span>
           </div>
           <div className="mt-1" key={`content-${msg.id || msg.timestamp}`}>
             {renderMessageContent()}
+            {/* <ChartComponent/> */}
           </div>
         </>
       )}
-
       {hasActivities && (
         <div className="mt-3 border-t border-neutral-200 dark:border-neutral-700 pt-2">
           <button
@@ -346,7 +359,8 @@ const MessageItem: React.FC<{ msg: Message }> = ({ msg }) => {
                 d="M19 9l-7 7-7-7"
               />
             </svg>
-            {activities.length} {activities.length === 1 ? "Activity" : "Activities"}
+            {activities.length}{" "}
+            {activities.length === 1 ? "Activity" : "Activities"}
           </button>
           {isExpanded && (
             <div className="mt-2 space-y-2">
