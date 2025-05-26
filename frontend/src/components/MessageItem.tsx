@@ -12,6 +12,7 @@ import { useAuth } from "@/context/AuthContext";
 import { DynamicForm } from "@/components/DynamicForm";
 import { toast } from "sonner";
 import JsonViewer from "./JsonViewer";
+import DataTable from "./DataTable";
 import { Activity } from "@/types/Activity";
 
 // Memoized markdown component
@@ -187,20 +188,19 @@ const MessageItem: React.FC<{ msg: Message }> = ({ msg }) => {
   const hasActivities = activities.length > 0;
 
   const renderMessageContent = () => {
-    if (msg.type === MessageType.Question && msg.metadata) {
+    if (msg.type === MessageType.Question && msg.metadata) {      
       return <FormWrapper key={`form-${msg.id || msg.timestamp}`} metadata={msg.metadata} onSubmit={handleFormSubmit} messageId={msg.id || msg.timestamp} />;
     }
-    
-    if (msg.contentType === ContentType.Json && msg.content !== null) {
-      if(msg.type === MessageType.Answer){
-        console.log("Rendering JSON content:", JSON.parse(msg.content));
+      if (msg.contentType === ContentType.Json && msg.content !== null) {
+      const content = typeof msg.content === "string" ? JSON.parse(msg.content) : msg.content;
+      
+      // If content is an array, use DataTable
+      if (Array.isArray(content)) {
+        return <DataTable data={content} />;
       }
       
-      return (
-        <JsonViewer
-          data={typeof msg.content === "string" ? JSON.parse(msg.content) : msg.content}
-        />
-      );
+      // For non-array JSON data, use JsonViewer
+      return <JsonViewer data={content} />;
     }
 
     return (
@@ -208,26 +208,42 @@ const MessageItem: React.FC<{ msg: Message }> = ({ msg }) => {
         content={typeof msg.content === "string" ? msg.content : msg.text || ""}
       />
     );
-  };
-
-  return (
+  };  return (
     <li
-      className={cn("w-fit max-w-[75%] px-4 py-2.5 rounded shadow", {
-        "bg-neutral-100 dark:bg-neutral-950 border border-transparent dark:border-neutral-600 ml-auto text-right text-neutral-900 dark:text-white":
+      className={cn("w-fit max-w-[75%] rounded-2xl shadow-sm transition-all", {
+        "bg-indigo-100 dark:bg-indigo-900 ml-auto p-3":
           msg.sender === "user",
-        "bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-transparent mr-auto text-left text-neutral-900 dark:text-white":
+        "bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-transparent mr-auto p-4":
           msg.sender === "ai",
       })}
     >
       {msg.sender === "user" ? (
-        <>
-          <strong>You:</strong>{" "}
-          {typeof msg.content === "string" ? msg.content : msg.text || ""}
-        </>
+        <div className="flex flex-col">
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <span className="text-xs text-indigo-700 dark:text-indigo-200 font-medium">You</span>
+            <span className="text-xs text-indigo-600/75 dark:text-indigo-300/75">
+              {new Date(msg.timestamp).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </span>
+          </div>
+          <div className="text-indigo-900 dark:text-indigo-50">
+            {typeof msg.content === "string" ? msg.content : msg.text || ""}
+          </div>
+        </div>
       ) : (
         <>
-          <strong>{msg.sender}:</strong>
-          <div className="mt-2" key={`content-${msg.id || msg.timestamp}`}>
+          <div className="flex items-center gap-2 mb-2">
+            <span className="font-medium text-sm text-neutral-700 dark:text-neutral-200">AI Assistant</span>
+            <span className="text-xs text-neutral-500 dark:text-neutral-400">
+              {new Date(msg.timestamp).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </span>
+          </div>
+          <div className="mt-1" key={`content-${msg.id || msg.timestamp}`}>
             {renderMessageContent()}
           </div>
         </>

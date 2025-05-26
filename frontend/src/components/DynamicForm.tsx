@@ -56,7 +56,13 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({ metadata, onSubmit, is
   const form = useForm<FormValues>({
     resolver: zodResolver(zodSchema),
     defaultValues: metadata.fields.reduce((acc, field) => {
-      acc[field.name] = field.type === 'checkbox' ? false : '';
+      if (field.type === 'checkbox') {
+        acc[field.name] = false;
+      } else if (field.type === 'number') {
+        acc[field.name] = '';
+      } else {
+        acc[field.name] = '';
+      }
       return acc;
     }, {} as FormValues)
   });
@@ -110,7 +116,11 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({ metadata, onSubmit, is
           <Input
             {...formField}
             type="number"
-            value={String(formField.value || '')}
+            value={typeof formField.value === 'number' || formField.value === '' ? formField.value : ''}
+            onChange={e => {
+              const val = e.target.value;
+              formField.onChange(val === '' ? undefined : Number(val));
+            }}
             placeholder={field.placeholder}
             className={baseInputClasses}
           />
@@ -127,7 +137,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({ metadata, onSubmit, is
         );
     }
   };
-
+  
   return (
     <div className="bg-white dark:bg-neutral-800 rounded-md p-4 shadow-sm border border-neutral-200 dark:border-neutral-700">
       <div className="mb-4">
