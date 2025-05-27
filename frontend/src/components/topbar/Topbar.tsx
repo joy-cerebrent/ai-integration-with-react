@@ -40,7 +40,7 @@ const Topbar = () => {
         <a href="/" className="flex items-center gap-2">
           <h1 className="text-xl font-semibold bg-gradient-to-r from-neutral-900 to-neutral-600 
             dark:from-neutral-100 dark:to-neutral-400 bg-clip-text text-transparent">
-            App-Logo
+            Agent Hub
           </h1>
         </a>
 

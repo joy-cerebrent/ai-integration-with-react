@@ -3,7 +3,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { atomDark } from "react-syntax-highlighter/dist/esm/styles/prism";
-import { cn } from "@/lib/utils";
+import { cn, toTitleCase } from "@/lib/utils";
 import { Message } from "@/types/Message";
 import { MessageType } from "@/enums/MessageType";
 import { ContentType } from "@/enums/ContentType";
@@ -23,8 +23,7 @@ import SummaryCard from "./SummaryCard";
 // Helper function for formatting message timestamps remains unchanged
 const formatMessageTime = (timestamp: string) => {
   try {
-    const date = new Date(timestamp);
-    console.log("Formatted date:", date, timestamp);
+    const date = new Date(timestamp);    
     if (isNaN(date.getTime())) {
       return ""; // Return empty string for invalid dates
     }
@@ -182,7 +181,7 @@ const ResponseItemComponent = memo(({ item }: { item: ResponseItem }) => {
       return (
         <div className="space-y-2">
           <h3 className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
-            {item.title}
+            {toTitleCase(item.title)}
           </h3>
           <ChartComponent data={item.content} />
         </div>
@@ -191,7 +190,7 @@ const ResponseItemComponent = memo(({ item }: { item: ResponseItem }) => {
       return (
         <div className="space-y-2">
           <h3 className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
-            {item.title}
+            {toTitleCase(item.title)}
           </h3>
           <DataTable data={Array.isArray(item.content.items) ? item.content.items : [item.content.value]} />
         </div>
@@ -200,7 +199,7 @@ const ResponseItemComponent = memo(({ item }: { item: ResponseItem }) => {
       return (
         <div className="space-y-2">
           <h3 className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
-            {item.title}
+            {toTitleCase(item.title)}
           </h3>
           <JsonViewer data={item.content} />
         </div>
@@ -209,7 +208,7 @@ const ResponseItemComponent = memo(({ item }: { item: ResponseItem }) => {
       return (
         <div className="space-y-2">
           <h3 className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
-            {item.title}
+            {toTitleCase(item.title)}
           </h3>
           <SummaryCard data={item.content} />
         </div>
@@ -218,7 +217,7 @@ const ResponseItemComponent = memo(({ item }: { item: ResponseItem }) => {
       return (
         <div className="space-y-2">
           <h3 className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
-            {item.title}
+            {toTitleCase(item.title)}
           </h3>
           <div className="text-neutral-600 dark:text-neutral-300">
             {typeof item.content === "string" ? item.content : JSON.stringify(item.content)}
@@ -229,7 +228,7 @@ const ResponseItemComponent = memo(({ item }: { item: ResponseItem }) => {
       return (
         <div className="space-y-2">
           <h3 className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
-            {item.title}
+            {toTitleCase(item.title)}
           </h3>
           <MarkdownContent content={typeof item.content === "string" ? item.content : JSON.stringify(item.content)} />
         </div>
@@ -238,7 +237,7 @@ const ResponseItemComponent = memo(({ item }: { item: ResponseItem }) => {
       return (
         <div className="space-y-2">
           <h3 className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
-            {item.title}
+            {toTitleCase(item.title)}
           </h3>
           <JsonViewer data={item.content} />
         </div>
@@ -248,13 +247,12 @@ const ResponseItemComponent = memo(({ item }: { item: ResponseItem }) => {
 ResponseItemComponent.displayName = "ResponseItemComponent";
 
 // Component to render ProcessResponse
-const TaskResponseComponent = memo(({ response }: { response: TaskResponse }) => {
-  console.log("Rendering TaskResponseComponent with response:", response);
+const TaskResponseComponent = memo(({ response }: { response: TaskResponse }) => {  
   return (
     <div className="space-y-4">
-      <div className="text-neutral-600 dark:text-neutral-300 mb-2">
+      {/* <div className="text-neutral-600 dark:text-neutral-300 mb-2">
         {response.message}
-      </div>
+      </div> */}
       {response.responseItems && response.responseItems.length > 0 ? (
         <div className="space-y-6">
           {response.responseItems.map((item, index) => (

@@ -36,7 +36,7 @@ const useWebSocketHandler = (
         return [...prevMessages, socketMessage.content];
       }
 
-      if(socketMessage.type === SocketContentType.Response && socketMessage.content) {
+      if(socketMessage.type === SocketContentType.Response) {
         setIsThinking(false);
         return [...prevMessages, socketMessage.content];
       }

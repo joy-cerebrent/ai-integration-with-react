@@ -11,8 +11,7 @@ interface JsonViewerProps {
 const JsonViewer: React.FC<JsonViewerProps> = ({ data }) => {  
   let parsedData: JsonObject;
 
-  try {
-    console.log('Input data:', data);
+  try {    
     if (typeof data === 'string') {
       try {
         // First try to parse as JSON
@@ -27,8 +26,7 @@ const JsonViewer: React.FC<JsonViewerProps> = ({ data }) => {
       }
     } else {
       parsedData = data;
-    }
-    console.log('Parsed data:', parsedData);
+    }    
   } catch (error) {
     console.error('Error handling data:', error);
     return (

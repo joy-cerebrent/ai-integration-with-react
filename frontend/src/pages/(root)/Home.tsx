@@ -105,7 +105,7 @@ const Home = () => {
         </CardContent>
       </Card>
 
-      <form
+      {/* <form
         onSubmit={handleSubmit(onSubmit)}
         className="w-full flex flex-col sm:flex-row items-center gap-4 mt-auto"
       >
@@ -135,7 +135,7 @@ const Home = () => {
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? "Sending..." : "Send"}
         </Button>
-      </form>
+      </form> */}
     </div >
   )
 }
