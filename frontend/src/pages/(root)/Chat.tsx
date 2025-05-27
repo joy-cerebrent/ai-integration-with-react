@@ -23,6 +23,7 @@ import {
 import FormComponent from '@/components/FormComponent';
 import ChartComponent from '@/components/ChartComponent';
 import AccordionComponent from '@/components/AccordionComponent';
+import SpreadSheetComponent from '@/components/spreadsheet/SpreadSheetSample';
 
 
 const Chat = () => {
@@ -162,7 +163,7 @@ const Chat = () => {
   if (isError) return <div>Error: {error.toString()}</div>;
 
   return (
-    <div className="flex h-screen flex-col p-6 pt-24 w-full bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100">
+    <div className="flex h-screen flex-col p-6 pt-24 w-full bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100 overflow-auto">
       <ChatTitle
         id={id!}
         title={title}
@@ -193,6 +194,8 @@ const Chat = () => {
                   <ChartComponent />
                 ) : msg.content === "status" ? (
                   <AccordionComponent />
+                ) : msg.content === "spreadsheet" ? (
+                  <SpreadSheetComponent />
                 ) : (
                   <ReactMarkdown
                     remarkPlugins={[remarkGfm]}

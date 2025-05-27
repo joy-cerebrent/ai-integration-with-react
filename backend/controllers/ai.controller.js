@@ -31,6 +31,10 @@ export const askGemini = async (req, res) => {
     return res.status(200).json("status");
   }
 
+  if (/\bspreadsheet?\b/i.test(prompt)) {
+    return res.status(200).json("spreadsheet");
+  }
+
   const response = await askGeminiFunc(prompt);
 
   return res.status(200).json(response);
