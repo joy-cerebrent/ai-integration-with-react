@@ -11,12 +11,16 @@ import { MessageStatus } from "@/enums/MessageStatus";
 import { useAuth } from "@/context/AuthContext";
 import { DynamicForm } from "@/components/DynamicForm";
 import { toast } from "sonner";
-import JsonViewer from "./JsonViewer";
+import JsonViewer, { JsonObject } from "./JsonViewer";
 import DataTable from "./DataTable";
 import { Activity } from "@/types/Activity";
 import ChartComponent from "./ChartComponent";
+import { ProcessResponse } from "@/types/ProcessResponse";
+import { ResponseItem } from "@/types/ResponseItem";
+import { TaskResponse } from "@/types/TaskResponse";
+import SummaryCard from "./SummaryCard";
 
-// Helper function to format message timestamps
+// Helper function for formatting message timestamps remains unchanged
 const formatMessageTime = (timestamp: string) => {
   try {
     const date = new Date(timestamp);
@@ -34,7 +38,7 @@ const formatMessageTime = (timestamp: string) => {
   }
 };
 
-// Memoized markdown component
+// Memoized markdown component remains unchanged
 const MarkdownContent = memo(({ content }: { content: string }) => (
   <ReactMarkdown
     remarkPlugins={[remarkGfm]}
@@ -90,7 +94,7 @@ const MarkdownContent = memo(({ content }: { content: string }) => (
 ));
 MarkdownContent.displayName = "MarkdownContent";
 
-// Memoized form component with better key handling
+// FormWrapper remains unchanged
 const FormWrapper = memo(
   ({
     metadata,
@@ -128,35 +132,162 @@ const FormWrapper = memo(
 );
 FormWrapper.displayName = "FormWrapper";
 
-// Memoized activity item component
-const ActivityItem = memo(({ activity }: { activity: Activity }) => (
-  <div className="bg-neutral-50 dark:bg-neutral-900 rounded-md p-3 text-sm">
-    <div className="flex flex-col gap-1">
-      <div className="flex items-start justify-between gap-2">
-        <p className="text-neutral-700 dark:text-neutral-300 flex-grow">
-          {activity.message || "N/A"}
-        </p>
-        <span className="text-xs text-neutral-500 dark:text-neutral-400 whitespace-nowrap">
-          {formatMessageTime(activity.timestamp)}
-        </span>
-      </div>{" "}
-      {activity.content && (
-        <div className="mt-1">
-          {Array.isArray(activity.content) ? (
-            <DataTable data={activity.content} />
-          ) : (
-            <JsonViewer data={activity.content} />
-          )}
+// ActivityItem updated with proper type checks
+const ActivityItem = memo(({ activity }: { activity: Activity }) => {
+  const formatContent = (content: unknown): string | JsonObject => {
+    if (!content) return "";
+    if (typeof content === "string") return content;
+    if (typeof content === "object") {
+      // Ensure content is a valid JsonObject
+      try {
+        const str = JSON.stringify(content);
+        return JSON.parse(str) as JsonObject;
+      } catch {
+        return JSON.stringify(content);
+      }
+    }
+    return JSON.stringify(content);
+  };
+
+  return (
+    <div className="bg-neutral-50 dark:bg-neutral-900 rounded-md p-3 text-sm">
+      <div className="flex flex-col gap-1">
+        <div className="flex items-start justify-between gap-2">
+          <p className="text-neutral-700 dark:text-neutral-300 flex-grow">
+            {activity.message || "N/A"}
+          </p>
+          <span className="text-xs text-neutral-500 dark:text-neutral-400 whitespace-nowrap">
+            {formatMessageTime(activity.timestamp)}
+          </span>
+        </div>
+        {activity.content && (
+          <div className="mt-1">
+            {Array.isArray(activity.content) ? (
+              <DataTable data={activity.content} />
+            ) : (
+              <JsonViewer data={formatContent(activity.content)} />
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+});
+ActivityItem.displayName = "ActivityItem";
+
+// New component to render ResponseItems based on their UIComponent value
+const ResponseItemComponent = memo(({ item }: { item: ResponseItem }) => {
+  switch (item.uiComponent) {
+    case "Chart":
+      return (
+        <div className="space-y-2">
+          <h3 className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+            {item.title}
+          </h3>
+          <ChartComponent data={item.content} />
+        </div>
+      );
+    case "Table":
+      return (
+        <div className="space-y-2">
+          <h3 className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+            {item.title}
+          </h3>
+          <DataTable data={Array.isArray(item.content.items) ? item.content.items : [item.content.value]} />
+        </div>
+      );
+    case "Json":
+      return (
+        <div className="space-y-2">
+          <h3 className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+            {item.title}
+          </h3>
+          <JsonViewer data={item.content} />
+        </div>
+      );
+    case "SummaryCard":
+      return (
+        <div className="space-y-2">
+          <h3 className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+            {item.title}
+          </h3>
+          <SummaryCard data={item.content} />
+        </div>
+      );
+    case "Text":
+      return (
+        <div className="space-y-2">
+          <h3 className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+            {item.title}
+          </h3>
+          <div className="text-neutral-600 dark:text-neutral-300">
+            {typeof item.content === "string" ? item.content : JSON.stringify(item.content)}
+          </div>
+        </div>
+      );
+    case "Markdown":
+      return (
+        <div className="space-y-2">
+          <h3 className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+            {item.title}
+          </h3>
+          <MarkdownContent content={typeof item.content === "string" ? item.content : JSON.stringify(item.content)} />
+        </div>
+      );
+    default:
+      return (
+        <div className="space-y-2">
+          <h3 className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+            {item.title}
+          </h3>
+          <JsonViewer data={item.content} />
+        </div>
+      );
+  }
+});
+ResponseItemComponent.displayName = "ResponseItemComponent";
+
+// Component to render ProcessResponse
+const TaskResponseComponent = memo(({ response }: { response: TaskResponse }) => {
+  console.log("Rendering TaskResponseComponent with response:", response);
+  return (
+    <div className="space-y-4">
+      <div className="text-neutral-600 dark:text-neutral-300 mb-2">
+        {response.message}
+      </div>
+      {response.responseItems && response.responseItems.length > 0 ? (
+        <div className="space-y-6">
+          {response.responseItems.map((item, index) => (
+            <ResponseItemComponent key={`response-item-${index}`} item={item} />
+          ))}
+        </div>
+      ) : (
+        <div className="text-neutral-500 dark:text-neutral-400">
+          No response items available
         </div>
       )}
     </div>
-  </div>
-));
-ActivityItem.displayName = "ActivityItem";
+  );
+});
+TaskResponseComponent.displayName = "ProcessResponseComponent";
 
 const MessageItem: React.FC<{ msg: Message }> = ({ msg }) => {
   const [isExpanded, setIsExpanded] = useState(true);
   const { user } = useAuth();
+
+  const formatJsonContent = (content: unknown): string | JsonObject => {
+    if (!content) return "";
+    if (typeof content === "string") return content;
+    if (typeof content === "object") {
+      try {
+        const str = JSON.stringify(content);
+        return JSON.parse(str) as JsonObject;
+      } catch {
+        return JSON.stringify(content);
+      }
+    }
+    return JSON.stringify(content);
+  };
 
   const handleFormSubmit = useCallback(
     async (data: Record<string, string | number | boolean>) => {
@@ -218,6 +349,20 @@ const MessageItem: React.FC<{ msg: Message }> = ({ msg }) => {
   const hasActivities = activities.length > 0;
 
   const renderMessageContent = () => {
+    if (msg.type === MessageType.Response) {
+      let taskResponse: TaskResponse;
+      try {
+        taskResponse = typeof msg.content === "string" 
+          ? JSON.parse(msg.content) as TaskResponse
+          : msg.content as TaskResponse;
+        
+        return <TaskResponseComponent response={taskResponse} />;
+      } catch (error) {
+        console.error("Failed to parse ProcessResponse:", error);
+        return <div className="text-red-500">Error parsing response data</div>;
+      }
+    }
+    
     if (msg.type === MessageType.Question && msg.metadata) {
       return (
         <FormWrapper
@@ -228,31 +373,20 @@ const MessageItem: React.FC<{ msg: Message }> = ({ msg }) => {
         />
       );
     }
+    
     if (msg.contentType === ContentType.Json && msg.content !== null) {
-      let content =
-        typeof msg.content === "string" ? JSON.parse(msg.content) : msg.content;
+      let content = typeof msg.content === "string" ? JSON.parse(msg.content) : msg.content;
 
-      // Handle nested array case - the data might be wrapped in multiple arrays
-      if (
-        Array.isArray(content) &&
-        content.length === 1 &&
-        Array.isArray(content[0])
-      ) {
+      if (Array.isArray(content) && content.length === 1 && Array.isArray(content[0])) {
         content = content[0];
       }
 
-      // If the content has labeled sections
       if (typeof content === "object" && !Array.isArray(content)) {
         return (
           <div className="space-y-6">
             {Object.entries(content).map(([key, value]) => {
-              // Parse the value if it's a string that looks like an array
               let processedValue = value;
-              if (
-                typeof value === "string" &&
-                value.trim().startsWith("[") &&
-                value.trim().endsWith("]")
-              ) {
+              if (typeof value === "string" && value.trim().startsWith("[") && value.trim().endsWith("]")) {
                 try {
                   processedValue = JSON.parse(value);
                 } catch (e) {
@@ -265,14 +399,10 @@ const MessageItem: React.FC<{ msg: Message }> = ({ msg }) => {
                   <h3 className="text-sm font-medium text-neutral-700 dark:text-neutral-300 capitalize">
                     {key.replace(/_/g, " ")}:
                   </h3>
-                  {Array.isArray(processedValue) &&
-                  processedValue.length > 0 &&
-                  // If items are objects with name/description, use table
-                  typeof processedValue[0] === "object" &&
-                  processedValue[0] !== null ? (
+                  {Array.isArray(processedValue) && processedValue.length > 0 && typeof processedValue[0] === "object" && processedValue[0] !== null ? (
                     <DataTable data={processedValue} />
                   ) : (
-                    <JsonViewer data={processedValue} />
+                    <JsonViewer data={formatJsonContent(processedValue)} />
                   )}
                 </div>
               );
@@ -281,13 +411,11 @@ const MessageItem: React.FC<{ msg: Message }> = ({ msg }) => {
         );
       }
 
-      // For array data, use DataTable
       if (Array.isArray(content)) {
         return <DataTable data={content} />;
       }
 
-      // For other JSON data, use JsonViewer
-      return <JsonViewer data={content} />;
+      return <JsonViewer data={formatJsonContent(content)} />;
     }
 
     return (
@@ -296,6 +424,7 @@ const MessageItem: React.FC<{ msg: Message }> = ({ msg }) => {
       />
     );
   };
+  
   return (
     <li
       className={cn(
@@ -334,7 +463,6 @@ const MessageItem: React.FC<{ msg: Message }> = ({ msg }) => {
           </div>
           <div className="mt-1" key={`content-${msg.id || msg.timestamp}`}>
             {renderMessageContent()}
-            {/* <ChartComponent/> */}
           </div>
         </>
       )}

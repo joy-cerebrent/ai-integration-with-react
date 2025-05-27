@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/context/AuthContext";
+import { cn } from "@/lib/utils";
 
 type DeleteButtonProps = {
   conversationId: string;
@@ -20,7 +21,7 @@ export default function DeleteButton({ conversationId }: DeleteButtonProps) {
     mutationFn: async ({ conversationId }: { conversationId: string }) => {
       const token = localStorage.getItem("accessToken");
 
-      const response = await fetch(`${__API_BASE_URL__}/api/conversations/${conversationId}`, {
+      const response = await fetch(`${__API_BASE_URL__}/api/conversation/${conversationId}`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -29,7 +30,7 @@ export default function DeleteButton({ conversationId }: DeleteButtonProps) {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to create conversation");
+        throw new Error("Failed to delete conversation");
       }
 
       const data = await response.json();
@@ -55,11 +56,18 @@ export default function DeleteButton({ conversationId }: DeleteButtonProps) {
   return (
     <Button
       onClick={handleDelete}
-      className="p-1 opacity-0 group-hover:opacity-100 transition cursor-pointer"
-      variant="destructive"
-      title="Delete"
+      variant="ghost"
+      size="icon"
+      className={cn(
+        "h-8 w-8 p-0",
+        "text-neutral-500 dark:text-neutral-400",
+        "hover:text-red-600 dark:hover:text-red-400",
+        "hover:bg-red-100 dark:hover:bg-red-900/20",
+        "transition-colors duration-200"
+      )}
+      title="Delete conversation"
     >
-      <Trash size={16} />
+      <Trash className="h-4 w-4" />
     </Button>
   );
 }

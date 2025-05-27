@@ -10,7 +10,8 @@ export interface Message {
   conversationId?: string | null;
   requestCard: RequestCard;
   text: string;
-  content?: Record<string, unknown> | null;
+  // content?: Record<string, unknown> | null;
+  content?: any | null;
   contentType: ContentType;
   metadata?: FormMetadata;
   type: MessageType;

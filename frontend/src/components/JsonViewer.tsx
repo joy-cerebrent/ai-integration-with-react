@@ -1,8 +1,8 @@
 import React from "react";
 
-type JsonValue = string | number | boolean | null | JsonObject | JsonArray;
-type JsonObject = { [key: string]: JsonValue };
-type JsonArray = JsonValue[];
+export type JsonValue = string | number | boolean | null | JsonObject | JsonArray;
+export type JsonObject = { [key: string]: JsonValue };
+export type JsonArray = JsonValue[];
 
 interface JsonViewerProps {
   data: JsonObject | string;
