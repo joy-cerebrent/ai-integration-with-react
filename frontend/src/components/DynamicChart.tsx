@@ -9,7 +9,7 @@ const DynamicChart = ({
   height = '400px',
 }: {
   chartConfig: EChartsOption;
-  type: string;
+  type: "bar" | "pie" | "radar" | "line" | "area";
   width?: string;
   height?: string;
 }) => {
