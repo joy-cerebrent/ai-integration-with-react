@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { buildZodSchema } from './validators/SchemaBuilder';
+import { toTitleCase } from '@/lib/utils';
 
 export interface FormMetadataField {
   name: string;
@@ -157,7 +158,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({ metadata, onSubmit, is
                 render={({ field: formField }) => (
                   <FormItem className="bg-neutral-50 dark:bg-neutral-900 p-3 rounded-md border border-neutral-200 dark:border-neutral-700">
                     <FormLabel className="text-sm font-medium text-neutral-700 dark:text-neutral-300 flex items-center gap-1">
-                      {field.label}
+                      {toTitleCase(field.label)}
                       {field.isRequired && (
                         <span className="text-red-500 text-xs">*</span>
                       )}
