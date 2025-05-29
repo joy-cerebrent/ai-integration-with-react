@@ -302,7 +302,7 @@ const MessageItem: React.FC<{ msg: Message }> = ({ msg }) => {
         content: data,
         timestamp: new Date().toISOString(),
         requestCard: msg.requestCard,
-        sender: "user",
+        sender: "User",
         activities: [],
         messageStatus: MessageStatus.Pending,
       };
@@ -428,14 +428,14 @@ const MessageItem: React.FC<{ msg: Message }> = ({ msg }) => {
       className={cn(
         "w-fit max-w-[75%] rounded-2xl shadow-sm transition-all list-none",
         {
-          "bg-indigo-100 dark:bg-indigo-900 ml-auto p-3": msg.sender === "user",
+          "bg-indigo-100 dark:bg-indigo-900 ml-auto p-3": msg.sender.toLocaleLowerCase() === "user",
           "bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-transparent mr-auto p-4":
             msg.sender === "ai",
         }
       )}
     >
       {" "}
-      {msg.sender === "user" ? (
+      {msg.sender.toLowerCase() === "user" ? (
         <div className="flex flex-col">
           <div className="flex items-center space-x-2 mb-1">
             <span className="text-xs text-indigo-700 dark:text-indigo-200 font-medium">

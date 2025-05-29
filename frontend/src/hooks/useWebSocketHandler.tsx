@@ -22,11 +22,16 @@ const useWebSocketHandler = (
     }
     
     console.log("📨 Socket Message:", socketMessage);
-    
-    // Ignore ping/pong messages for message handling
+      // Ignore ping/pong messages for message handling
     if (socketMessage.type === SocketContentType.Ping || socketMessage.type === SocketContentType.Pong) {
       console.log(`Received ${socketMessage.type === SocketContentType.Ping ? "ping" : "pong"} message, ignoring for UI updates`);
       return;
+    }
+    
+    // For any non-ping/pong message, we should stop the thinking indicator
+    // This ensures that any response, alert, activity, etc. turns off the indicator
+    if (socketMessage.type !== SocketContentType.Question) {
+      setIsThinking(false);
     }
 
     setMessages((prevMessages) => {
@@ -46,10 +51,7 @@ const useWebSocketHandler = (
         if (messageContent) {
           return [...prevMessages, messageContent];
         }
-      }
-
-      if(socketMessage.type === SocketContentType.Response) {
-        setIsThinking(false);
+      }      if(socketMessage.type === SocketContentType.Response) {
         // Ensure content is a valid Message type
         const messageContent = socketMessage.content as unknown as Message;
         if (messageContent) {
@@ -140,10 +142,17 @@ const useWebSocketHandler = (
         default: {
           console.warn("Unhandled socket message type:", socketMessage.type);
           break;
-        }
-      }
+        }      }
+      
       // Update the message in our messages array
       updatedMessages[messageIndex] = currentMessage;
+      
+      // Set completed status for the message if it's done processing
+      if (socketMessage.type === SocketContentType.Response || 
+          socketMessage.type === SocketContentType.Alert) {
+        currentMessage.messageStatus = MessageStatus.Completed;
+      }
+      
       return updatedMessages;
     });
   }, [setMessages, setIsThinking]);

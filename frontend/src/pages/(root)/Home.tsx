@@ -50,7 +50,7 @@ const Home = () => {
     const userMessage = {
       conversationId,
       content: data.prompt,
-      sender: "user"
+      sender: "User"
     };
 
     await fetch("http://localhost:3000/api/messages/save", {

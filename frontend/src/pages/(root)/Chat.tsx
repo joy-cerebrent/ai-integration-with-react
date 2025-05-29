@@ -89,7 +89,7 @@ const Chat = () => {  const { id } = useParams();
       content: null,
       timestamp: new Date().toISOString(),
       requestCard: requestCard,
-      sender: "user",
+      sender: "User",
       activities: [],
       messageStatus: MessageStatus.Pending,
     };
