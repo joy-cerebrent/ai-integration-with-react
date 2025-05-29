@@ -14,31 +14,47 @@ const useWebSocketHandler = (
   _messages: Message[],
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>,
   setIsThinking: React.Dispatch<React.SetStateAction<boolean>>
-) => {
-  const handleSocketMessage = useCallback((socketMessage: WebSocketMessage) => {
+) => {  const handleSocketMessage = useCallback((socketMessage: WebSocketMessage) => {
+    // Validate that the message is properly formed before processing
+    if (!socketMessage) {
+      console.error("Received invalid socket message:", socketMessage);
+      return;
+    }
+    
     console.log("📨 Socket Message:", socketMessage);
+    
+    // Ignore ping/pong messages for message handling
+    if (socketMessage.type === SocketContentType.Ping || socketMessage.type === SocketContentType.Pong) {
+      console.log(`Received ${socketMessage.type === SocketContentType.Ping ? "ping" : "pong"} message, ignoring for UI updates`);
+      return;
+    }
 
     setMessages((prevMessages) => {
       // Try to find matching message by ID first
       let messageIndex = prevMessages.findIndex(
         (msg) => msg.id === socketMessage?.requestCard?.conversationMessageId
-      );
-
-      // If no match by ID, try to find the most recent pending message
+      );      // If no match by ID, try to find the most recent pending message
       if (messageIndex === -1 && socketMessage.type !== SocketContentType.Question) {
+        // Find the most recent pending message that starts with "pending-"
         messageIndex = prevMessages.findIndex(
-          (msg) => msg.id === '-101'
+          (msg) => msg.id && msg.id.startsWith('pending-') && msg.messageStatus === MessageStatus.Pending
         );
-      }
-
-      // If still no match, this might be a new message
+      }// If still no match, this might be a new message
       if (socketMessage.type === SocketContentType.Question && socketMessage.content) {
-        return [...prevMessages, socketMessage.content];
+        // Ensure content is a valid Message type
+        const messageContent = socketMessage.content as unknown as Message;
+        if (messageContent) {
+          return [...prevMessages, messageContent];
+        }
       }
 
       if(socketMessage.type === SocketContentType.Response) {
         setIsThinking(false);
-        return [...prevMessages, socketMessage.content];
+        // Ensure content is a valid Message type
+        const messageContent = socketMessage.content as unknown as Message;
+        if (messageContent) {
+          return [...prevMessages, messageContent];
+        }
       }
 
       // If we still can't find a message to update, log error and return unchanged
@@ -53,10 +69,9 @@ const useWebSocketHandler = (
 
       // Create a new messages array with the current message
       const updatedMessages = [...prevMessages];
-      const currentMessage = { ...updatedMessages[messageIndex] };
-
-      // Update message ID if it's not set
-      if (!currentMessage.id && socketMessage.requestCard?.conversationMessageId) {
+      const currentMessage = { ...updatedMessages[messageIndex] };      // Update message ID if it's not set or if it's a pending message
+      if ((currentMessage.id && currentMessage.id.startsWith('pending-') || !currentMessage.id) && 
+          socketMessage.requestCard?.conversationMessageId) {
         currentMessage.id = socketMessage.requestCard.conversationMessageId;
       }
 

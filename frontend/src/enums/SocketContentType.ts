@@ -5,4 +5,6 @@ export enum SocketContentType {
   Form,
   Activity,
   Alert,
+  Ping,
+  Pong
 }

@@ -15,7 +15,7 @@ import JsonViewer, { JsonObject } from "./JsonViewer";
 import DataTable from "./DataTable";
 import { Activity } from "@/types/Activity";
 import ChartComponent from "./ChartComponent";
-import { ProcessResponse } from "@/types/ProcessResponse";
+// Import removed as unused
 import { ResponseItem } from "@/types/ResponseItem";
 import { TaskResponse } from "@/types/TaskResponse";
 import SummaryCard from "./SummaryCard";
@@ -489,9 +489,8 @@ const MessageItem: React.FC<{ msg: Message }> = ({ msg }) => {
             {activities.length === 1 ? "Activity" : "Activities"}
           </button>
           {isExpanded && (
-            <div className="mt-2 space-y-2">
-              {activities.map((activity, index) => (
-                <ActivityItem key={activity.id || index} activity={activity} />
+            <div className="mt-2 space-y-2">              {activities.map((activity, index) => (
+                <ActivityItem key={activity.id ? `activity-${activity.id}` : `activity-${index}-${Date.now()}`} activity={activity} />
               ))}
             </div>
           )}

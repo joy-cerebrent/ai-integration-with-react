@@ -80,10 +80,8 @@ const Chat = () => {  const { id } = useParams();
       senderId: user.id,
       userId: user.id,      
       receiverRole: Author.System,
-    };
-
-    const userMessage: Message = {
-      id: '-101',
+    };    const userMessage: Message = {
+      id: `pending-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       conversationId: id,
       type: MessageType.Prompt,
       contentType: ContentType.Text,
@@ -136,9 +134,11 @@ const Chat = () => {  const { id } = useParams();
     <div className="flex h-screen flex-col p-6 pt-24 w-full bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100">
       <ChatTitle id={id!} title={title} />
 
-      <div className="flex-1 overflow-y-auto rounded space-y-4 mb-6 pr-1.5">
-        {messages.map((msg) => (
-          <MessageItem key={msg.id || msg.timestamp} msg={msg} />
+      <div className="flex-1 overflow-y-auto rounded space-y-4 mb-6 pr-1.5">      {messages.map((msg, index) => (
+          <MessageItem 
+            key={msg.id ? `msg-${msg.id}` : `msg-${msg.timestamp}-${index}`} 
+            msg={msg} 
+          />
         ))}
 
         {isThinking && (
