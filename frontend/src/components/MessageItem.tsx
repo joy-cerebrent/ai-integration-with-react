@@ -198,18 +198,22 @@ const ResponseItemComponent = memo(({ item }: { item: ResponseItem }) => {
     case "Json":
       return (
         <div className="space-y-2">
+         {item.title  && (
           <h3 className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
             {toTitleCase(item.title)}
           </h3>
+         )}          
           <JsonViewer data={item.content} />
         </div>
       );
     case "SummaryCard":
       return (
         <div className="space-y-2">
+           {item.title  && (
           <h3 className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
             {toTitleCase(item.title)}
           </h3>
+         )}                    
           <SummaryCard data={item.content} />
         </div>
       );
