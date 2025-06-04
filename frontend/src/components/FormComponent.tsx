@@ -13,6 +13,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { useState } from 'react';
+import { Fullscreen, X } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const formSchema = z.object({
   firstName: z.string().nonempty("First Name is required"),
@@ -248,28 +250,47 @@ export default function MultiStepForm() {
     }
   };
 
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const toggleFullscreen = () => {
+    setIsFullscreen((prev) => !prev);
+  };
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="flex-1 space-y-4 w-lg p-4">
-      <h2 className="text-xl font-semibold mb-4">{step.name}</h2>
+    <div className={cn(
+      isFullscreen && "fixed inset-4 z-50 bg-neutral-900 rounded-2xl border-[1px] border-neutral-500 flex items-center justify-center p-6 overflow-y-auto"
+    )}>
+      <form onSubmit={handleSubmit(onSubmit)} className="flex-1 space-y-4 w-lg p-4">
+        <h1 className="text-xl font-semibold flex justify-between">
+          <span>Your AI Generated Form</span>
+          <Button type="button" variant="outline" onClick={toggleFullscreen}>
+            {isFullscreen ? <X /> : <Fullscreen />}
+          </Button>
+        </h1>
 
-      {renderStep(currentStep)}
+        <h2 className="text-lg font-semibold mb-4">
+          {step.name}
+        </h2>
 
-      <div className="flex justify-between pt-4">
-        {currentStep > 0 && (
-          <Button type="button" variant="outline" onClick={prevStep}>
-            Back
-          </Button>
-        )}
-        {currentStep < steps.length - 1 ? (
-          <Button type="button" onClick={nextStep}>
-            Next
-          </Button>
-        ) : (
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Submitting..." : "Submit"}
-          </Button>
-        )}
-      </div>
-    </form>
+        {renderStep(currentStep)}
+
+        <div className="flex justify-between pt-4">
+          {currentStep > 0 && (
+            <Button type="button" variant="outline" onClick={prevStep}>
+              Back
+            </Button>
+          )}
+          {currentStep < steps.length - 1 ? (
+            <Button type="button" onClick={nextStep}>
+              Next
+            </Button>
+          ) : (
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Submitting..." : "Submit"}
+            </Button>
+          )}
+        </div>
+      </form>
+    </div>
   );
 }
